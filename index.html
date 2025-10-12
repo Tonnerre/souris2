@@ -20,9 +20,10 @@
     }
     @media (max-width: 768px) {
       :root { --game-width: 100vw; --game-height: 55vh; --ground-height: 6vh; }
-      body { padding: 0; justify-content: flex-start; overflow: hidden; }
+      body { padding: 28px 0 36px 0; justify-content: flex-start; overflow: hidden; }
       #game { margin: 0; }
       #hud { font-size: 11px; top: 24px; left: 4px; padding: 3px 6px; display: flex; flex-direction: column; gap: 2px; }
+      #controls { display: none !important; }
       #signature {
         font-size: 8px;
         top: 2px !important;
@@ -35,7 +36,7 @@
         text-align: left;
       }
       /* Smaller arrows in portrait */
-      #touch-controls button { width: 26px; height: 26px; font-size: 12px; }
+      #touch-controls button { width: 22px; height: 22px; font-size: 12px; }
       /* Super saut bouton en portrait */
       #touch-super-jump {
         transition: all 0.1s;
@@ -47,11 +48,12 @@
     /* Landscape orientation on mobile/tablet: ensure barriers fully visible, controls hidden by default */
     @media (max-width: 1024px) and (orientation: landscape) {
       :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vh; }
+      #controls { display: none !important; }
       .barrier { height: 36px; }
       #hills-canvas { height: 140px; }
       /* Laisser moins de marge: flèches plus petites */
-      body { padding-bottom: 24px; }
-      #touch-controls button { width: 22px; height: 22px; font-size: 12px; }
+      body { padding-bottom: 20px; }
+      #touch-controls button { width: 20px; height: 20px; font-size: 12px; }
       #touch-super-jump {
         display: block;
         position: absolute;
@@ -327,7 +329,6 @@
       <div>Niveau: <span id="level">1</span></div>
       <div>Super: <span id="superStatus">—</span></div>
     </div>
-  <div id="signature">© 2025 - Esteban Munoz Motsou (8 ans)</div>
     <div id="sun"></div>
     <div id="moon"></div>
     <canvas id="hills-canvas"></canvas>
@@ -358,6 +359,7 @@
       </div>
     </div>
   </div>
+  <div id="signature">© 2025 - Esteban Munoz Motsou (8 ans)</div>
   <audio id="backgroundMusic" loop>
     <source src="assets/sounds/backgound.mp3" type="audio/mpeg">
   </audio>
@@ -397,20 +399,24 @@
   }
   
   function applyResponsiveLayout() {
+    const isMobile = isMobileEnv();
     const portrait = window.innerHeight >= window.innerWidth;
-    // Compute target sizes
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    // Taller game area in both orientations to reveal feet and road bottom
-    // Réduction pour éviter chevauchements avec signature/PAUSE/REFRESH et flèches
-    const gameH = Math.round(vh * (portrait ? 0.60 : 0.55));
+    if (!isMobile) {
+      // PC: conserver la taille CSS par défaut (pas de forçage inline)
+      game.style.width = '';
+      game.style.height = '';
+      // Ne pas écraser les variables CSS globales
+      return;
+    }
+    // MOBILE: réduire la hauteur pour éviter tout chevauchement
+    const gameH = Math.round(vh * (portrait ? 0.52 : 0.50));
     const groundH = Math.round(vh * (portrait ? 0.06 : 0.10));
-    // Apply sizes directly to #game and update CSS vars
     game.style.width = vw + 'px';
     game.style.height = gameH + 'px';
     document.documentElement.style.setProperty('--game-width', vw + 'px');
     document.documentElement.style.setProperty('--game-height', gameH + 'px');
-    // Sync CSS var for ground height (used by some styles)
     document.documentElement.style.setProperty('--ground-height', groundH + 'px');
     // Ensure hills canvas adapts
     hillsCanvas.width = vw;
@@ -440,11 +446,16 @@
         signatureEl.style.width = 'auto';
         signatureEl.style.maxWidth = '60vw';
         signatureEl.style.top = '4px';
-        signatureEl.style.right = '8px';
+        signatureEl.style.left = '4px';
+        signatureEl.style.right = 'auto';
+        signatureEl.style.textAlign = 'left';
       } else {
         signatureEl.textContent = '© 2025 - Esteban Munoz Motsou (8 ans)';
-        // Keep transparent background globally to avoid any overlay effect
         signatureEl.style.background = 'none';
+        signatureEl.style.top = '4px';
+        signatureEl.style.right = '8px';
+        signatureEl.style.left = 'auto';
+        signatureEl.style.textAlign = 'right';
       }
     }
   }
