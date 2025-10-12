@@ -47,13 +47,12 @@
       :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vh; }
       #controls { display: none !important; }
       .barrier { height: 36px; }
-      .barrier-rail { bottom: calc(var(--ground-height) + 36px); }
       #hills-canvas { height: 140px; }
       /* Leave room under the game for arrows */
       body { padding-bottom: 40px; }
       #touch-controls { bottom: 10px; }
       #touch-controls button { width: 28px; height: 28px; font-size: 14px; }
-      #mobile-actions { display: flex; position: fixed; top: 8px; right: 8px; z-index: 70; }
+      #mobile-actions { position: fixed; top: 8px; right: 8px; gap: 8px; display: none; z-index: 70; pointer-events: none; }
     }
     html, body {
       margin: 0; padding: 0; background: #dfe6f1;
@@ -261,11 +260,9 @@
     #mobile-actions { display: none; position: fixed; top: 8px; right: 8px; z-index: 50; gap: 6px; }
     #mobile-actions button { pointer-events: auto; padding: 6px 10px; font-size: 14px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.9); color: #fff; background: rgba(0,0,0,0.5); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
     #mobile-actions button:active { transform: scale(0.95); }
-    @media (max-width: 768px) { #mobile-actions { display: flex; } }
+    /* Show mobile UI only on touch/coarse-pointer devices */
     @media (hover: none) and (pointer: coarse) {
-      #touch-controls { display: flex; }
-    }
-    @media (max-width: 768px) {
+      #mobile-actions { display: flex; }
       #touch-controls { display: flex; }
     }
     /* Make mobile settings dialog overlay everything */
@@ -383,8 +380,9 @@
     const touchControls = document.getElementById('touch-controls');
     const settingsOpen = document.getElementById('mobile-settings')?.style.display === 'block';
     if (!settingsOpen) {
-      if (mobileActions) mobileActions.style.display = 'flex';
-      if (touchControls) touchControls.style.display = 'flex';
+      const showMobile = isMobileEnv();
+      if (mobileActions) mobileActions.style.display = showMobile ? 'flex' : 'none';
+      if (touchControls) touchControls.style.display = showMobile ? 'flex' : 'none';
     }
   }
   const GROUND_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ground-height')) || 40;
@@ -1006,6 +1004,11 @@
     if (ma) ma.style.display = 'none';
   }
   
+  // Wrapper attendu par la logique de collision
+  function onGameOver() {
+    endGame();
+  }
+  
   function restart() {
     for (const c of cats) c.el.remove();
     cats.length = 0;
@@ -1056,11 +1059,12 @@
     
     lastTime = performance.now();
     requestAnimationFrame(loop);
-    // Restore controls visibility after restart
+    // Restore controls visibility after restart (mobile only)
     const tc = document.getElementById('touch-controls');
     const ma = document.getElementById('mobile-actions');
-    if (tc) tc.style.display = 'flex';
-    if (ma) ma.style.display = 'flex';
+    const showMobile = isMobileEnv();
+    if (tc) tc.style.display = showMobile ? 'flex' : 'none';
+    if (ma) ma.style.display = showMobile ? 'flex' : 'none';
   }
   
   function startGame() {
