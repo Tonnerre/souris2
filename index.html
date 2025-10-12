@@ -36,8 +36,6 @@
       }
       #hills-canvas {
         height: 120px;
-        transform: scale(0.7);
-        transform-origin: bottom center;
       }
       #sun, #moon {
         transform: scale(0.7);
@@ -45,12 +43,16 @@
     }
     /* Landscape orientation on mobile/tablet: ensure barriers fully visible, controls hidden by default */
     @media (max-width: 1024px) and (orientation: landscape) {
-      :root { --game-width: 100vw; --game-height: 65vh; --ground-height: 6vh; }
+      :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vh; }
       #controls { display: none !important; }
-      .barrier { height: 80px; }
-      .barrier-rail { bottom: calc(var(--ground-height) + 80px); }
+      .barrier { height: 60px; }
+      .barrier-rail { bottom: calc(var(--ground-height) + 60px); }
       #hills-canvas { height: 140px; }
+      /* Leave room under the game for arrows */
+      body { padding-bottom: 78px; }
       #touch-controls { bottom: 10px; }
+      #touch-controls button { width: 56px; height: 56px; font-size: 22px; }
+      #mobile-actions { display: flex; position: fixed; top: 8px; right: 8px; z-index: 70; }
     }
     html, body {
       margin: 0; padding: 0; background: #dfe6f1;
@@ -351,6 +353,11 @@
   
   const WIDTH = parseInt(getComputedStyle(game).width) || 600;
   const HEIGHT = parseInt(getComputedStyle(game).height) || 240;
+  function getGameWidth() { return game.clientWidth || WIDTH; }
+  function getGameHeight() { return game.clientHeight || HEIGHT; }
+  function isMobileEnv() {
+    return (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) || window.innerWidth <= 1024;
+  }
   const GROUND_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ground-height')) || 40;
   
   const GRAVITY = 1800;
@@ -374,7 +381,7 @@
   
   const input = { left: false, right: false, jump: false };
   
-  const mouseSize = Math.min(48, WIDTH * 0.08);
+  const mouseSize = Math.min(48, getGameWidth() * 0.08);
   const catSize = mouseSize * 1.5;
   
   souris.style.width = mouseSize + 'px';
@@ -384,7 +391,7 @@
   const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
   
   const player = {
-    x: Math.min(60, WIDTH * 0.1), y: roadCenterOffset, vx: 0, vy: 0,
+    x: Math.min(60, getGameWidth() * 0.1), y: roadCenterOffset, vx: 0, vy: 0,
     width: mouseSize, height: mouseSize, onGround: true
   };
   
@@ -402,7 +409,7 @@
   // Canvas pour les collines
   const hillsCanvas = document.getElementById('hills-canvas');
   const hillsCtx = hillsCanvas.getContext('2d');
-  hillsCanvas.width = WIDTH;
+  hillsCanvas.width = getGameWidth();
   hillsCanvas.height = 200;
   
   const sun = document.getElementById('sun');
@@ -486,8 +493,8 @@
     
     if (progress < 0.15) { // Lever de soleil
       const t = progress / 0.15;
-      sunX = WIDTH * 0.85;
-      sunY = HEIGHT * 0.6 - (HEIGHT * 0.4) * t; // Monte depuis l'horizon
+      sunX = getGameWidth() * 0.85;
+      sunY = getGameHeight() * 0.6 - (getGameHeight() * 0.4) * t; // Monte depuis l'horizon
       sunOpacity = t; // Apparaît progressivement
       // Couleurs chaudes du lever
       const redness = Math.floor(255 - 20 * t);
@@ -495,23 +502,23 @@
       sunGlow = `0 0 ${60 - 20 * t}px rgba(255, ${150 + 105 * t}, 50, ${0.6 + 0.2 * t}), 0 0 ${100 - 20 * t}px rgba(255, ${100 + 155 * t}, 50, ${0.3 + 0.1 * t})`;
     } else if (progress < 0.5) { // Jour - soleil haut dans le ciel
       const t = (progress - 0.15) / 0.35;
-      sunX = WIDTH * 0.85;
-      sunY = HEIGHT * 0.2 - 10 * t; // Légèrement plus haut
+      sunX = getGameWidth() * 0.85;
+      sunY = getGameHeight() * 0.2 - 10 * t; // Légèrement plus haut
       sunOpacity = 1;
       sunColor = 'radial-gradient(circle, #ffeb3b 0%, #ffc107 50%, #ff9800 100%)';
       sunGlow = '0 0 40px rgba(255, 235, 59, 0.8), 0 0 80px rgba(255, 235, 59, 0.4)';
     } else if (progress < 0.65) { // Coucher de soleil
       const t = (progress - 0.5) / 0.15;
-      sunX = WIDTH * 0.85;
-      sunY = HEIGHT * 0.2 + (HEIGHT * 0.4) * t; // Descend vers l'horizon
+      sunX = getGameWidth() * 0.85;
+      sunY = getGameHeight() * 0.2 + (getGameHeight() * 0.4) * t; // Descend vers l'horizon
       sunOpacity = 1 - 0.5 * t;
       // Soleil devient orange/rouge au coucher
       const redness = Math.floor(235 - 100 * t);
       sunColor = `radial-gradient(circle, #ff${redness.toString(16)}3b 0%, #ff${Math.floor(193 - 100 * t).toString(16)}07 50%, #ff${Math.floor(152 - 80 * t).toString(16)}00 100%)`;
       sunGlow = `0 0 ${40 + 60 * t}px rgba(255, ${100 - 50 * t}, 50, ${0.8 - 0.3 * t}), 0 0 ${80 + 60 * t}px rgba(255, ${100 - 50 * t}, 50, ${0.4 - 0.2 * t})`;
     } else { // Nuit - soleil complètement couché
-      sunX = WIDTH * 0.85;
-      sunY = HEIGHT * 0.7;
+      sunX = getGameWidth() * 0.85;
+      sunY = getGameHeight() * 0.7;
       sunOpacity = 0;
       sunColor = 'radial-gradient(circle, #ff6b3b 0%, #ff3b07 50%, #ff2800 100%)';
       sunGlow = '0 0 20px rgba(255, 50, 30, 0.3)';
@@ -533,23 +540,23 @@
     let moonX, moonY, moonOpacity;
     
     if (progress < 0.65) { // Jour et crépuscule - lune cachée sous l'horizon
-      moonX = WIDTH * 0.15;
-      moonY = HEIGHT * 0.7; // Sous l'horizon
+      moonX = getGameWidth() * 0.15;
+      moonY = getGameHeight() * 0.7; // Sous l'horizon
       moonOpacity = 0;
     } else if (progress < 0.8) { // Lever de lune
       const t = (progress - 0.65) / 0.15;
-      moonX = WIDTH * 0.15;
-      moonY = HEIGHT * 0.7 - (HEIGHT * 0.5) * t; // Monte depuis l'horizon
+      moonX = getGameWidth() * 0.15;
+      moonY = getGameHeight() * 0.7 - (getGameHeight() * 0.5) * t; // Monte depuis l'horizon
       moonOpacity = t; // Apparaît progressivement
     } else if (progress < 0.95) { // Nuit - lune haute
       const t = (progress - 0.8) / 0.15;
-      moonX = WIDTH * 0.15;
-      moonY = HEIGHT * 0.2 - 10 * t; // Légèrement plus haute
+      moonX = getGameWidth() * 0.15;
+      moonY = getGameHeight() * 0.2 - 10 * t; // Légèrement plus haute
       moonOpacity = 1;
     } else { // Coucher de lune (fin de cycle)
       const t = (progress - 0.95) / 0.05;
-      moonX = WIDTH * 0.15;
-      moonY = HEIGHT * 0.2 + (HEIGHT * 0.5) * t; // Descend vers l'horizon
+      moonX = getGameWidth() * 0.15;
+      moonY = getGameHeight() * 0.2 + (getGameHeight() * 0.5) * t; // Descend vers l'horizon
       moonOpacity = 1 - t; // Disparaît progressivement
     }
     
@@ -563,21 +570,15 @@
   const hillsSpeed = 15; // Vitesse de défilement des collines (réduite)
   
   function generateHillPoints(offset, canvasWidth, isMobile) {
+    // Screen-space sampling: x in [0..canvasWidth], y from phase (x + offset)
     const points = [];
     const ampFactor = isMobile ? 0.6 : 1.0;
     const baseHeight = isMobile ? 70 : 90;
-    const leftMargin = 200;
-    const rightMargin = 200;
-    const startX = -leftMargin;
-    const endX = canvasWidth + rightMargin;
-    const span = endX - startX;
-    const segments = Math.max(60, Math.ceil(span / 15));
-    const scroll = offset % canvasWidth; // wrap exactly to canvas width for seamless scrolling
+    const segments = Math.max(80, Math.ceil(canvasWidth / 10));
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
-      const baseX = startX + t * span;
-      const x = baseX - scroll;
-      const phase = baseX + offset; // continuous phase for shape variation
+      const x = t * canvasWidth;
+      const phase = x + offset;
       const y1 = Math.sin(phase * 0.003) * 40 * ampFactor;
       const y2 = Math.sin(phase * 0.007) * 30 * ampFactor;
       const y3 = Math.sin(phase * 0.015) * 20 * ampFactor;
@@ -599,10 +600,10 @@
     const isMobile = window.innerWidth <= 768;
     const points = generateHillPoints(hillsOffset, cw, isMobile);
     
-    // Dessiner le paysage de collines
+    // Dessiner le paysage de collines (plein écran)
     hillsCtx.beginPath();
-    hillsCtx.moveTo(-220, 200);
-    hillsCtx.lineTo(-220, points[0].y);
+    hillsCtx.moveTo(0, 200);
+    hillsCtx.lineTo(0, points[0].y);
     
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
@@ -618,7 +619,7 @@
       }
     }
     
-    hillsCtx.lineTo(cw + 220, 200);
+    hillsCtx.lineTo(cw, 200);
     hillsCtx.closePath();
     
     // Remplissage avec dégradé vert (herbe) - couleurs adaptées au cycle jour/nuit
@@ -709,17 +710,17 @@
   function spawnBarrier() {
     const el = document.createElement('div');
     el.className = 'barrier';
-    el.style.left = WIDTH + 'px';
+    el.style.left = getGameWidth() + 'px';
     game.appendChild(el);
     
     const speed = 180; // Vitesse fixe pour un défilement régulier
-    barriers.push({ el, x: WIDTH, vx: -speed, width: 10 });
+    barriers.push({ el, x: getGameWidth(), vx: -speed, width: 10 });
   }
   
   function spawnCat() {
     const el = document.createElement('div');
     el.className = 'chat';
-    el.style.left = WIDTH + 'px';
+    el.style.left = getGameWidth() + 'px';
     const roadCenterOffset = GROUND_HEIGHT / 2 - catSize / 2;
     el.style.bottom = (GROUND_HEIGHT + roadCenterOffset) + 'px';
     el.style.width = catSize + 'px';
@@ -727,7 +728,7 @@
     game.appendChild(el);
     
     const speed = CAT_MIN_SPEED + Math.random() * (CAT_MAX_SPEED - CAT_MIN_SPEED);
-    cats.push({ el, x: WIDTH, y: roadCenterOffset, vx: -speed, width: catSize, height: catSize });
+    cats.push({ el, x: getGameWidth(), y: roadCenterOffset, vx: -speed, width: catSize, height: catSize });
   }
   
   function onKeyDown(e) {
@@ -772,7 +773,7 @@
   scheduleNextBarrier();
   
   // Initialiser les barrières au démarrage
-  for (let i = 0; i < Math.ceil(WIDTH / 27); i++) {
+  for (let i = 0; i < Math.ceil(getGameWidth() / 27); i++) {
     const el = document.createElement('div');
     el.className = 'barrier';
     el.style.left = (i * 27) + 'px';
@@ -784,9 +785,30 @@
   drawHills();
   updateSunPosition(0); // Initialiser le soleil et la lune
 
-  // Adapter le rendu lors des changements de taille (paysage plein écran sans bordures)
+  // Adapter au redimensionnement: redessiner les collines et reconstruire les barrières
   window.addEventListener('resize', () => {
     drawHills();
+    // Rebuild barriers to fill full width after orientation change
+    for (const b of barriers) b.el.remove();
+    barriers.length = 0;
+    for (let i = 0; i < Math.ceil(getGameWidth() / 27); i++) {
+      const el = document.createElement('div');
+      el.className = 'barrier';
+      el.style.left = (i * 27) + 'px';
+      game.appendChild(el);
+      barriers.push({ el, x: i * 27, vx: -180, width: 10 });
+    }
+    // Clamp player to new bounds
+    player.x = Math.max(0, Math.min(getGameWidth() - player.width, player.x));
+  });
+  
+  // Gérer la rotation: reconstruire après stabilisation du layout
+  window.addEventListener('orientationchange', () => {
+    setTimeout(() => {
+      // Trigger same logic as resize
+      const evt = new Event('resize');
+      window.dispatchEvent(evt);
+    }, 250);
   });
   
   function update(dt) {
@@ -807,7 +829,7 @@
     if (input.jump && player.onGround) {
       const heightBoost = nextJumpSuper ? 1.8 : 1.0;
       // On mobile, slightly reduce jump height/speed for better control
-      const mobileJumpFactor = (window.innerWidth <= 768) ? 0.85 : 1.0;
+      const mobileJumpFactor = isMobileEnv() ? 0.85 : 1.0;
       player.vy = JUMP_VELOCITY * jumpHeightScale * heightBoost * mobileJumpFactor;
       
       let dir = 0;
@@ -826,7 +848,7 @@
     if (!player.onGround) player.vy -= GRAVITY * dt;
     
     player.x += player.vx * dt;
-    player.x = Math.max(0, Math.min(WIDTH - player.width, player.x));
+    player.x = Math.max(0, Math.min(getGameWidth() - player.width, player.x));
     
     player.y += player.vy * dt;
     const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
@@ -914,17 +936,18 @@
     }
     
     const a = {
-      x: player.x, y: HEIGHT - (GROUND_HEIGHT + player.y + player.height),
+      x: player.x, y: getGameHeight() - (GROUND_HEIGHT + player.y + player.height),
       w: player.width, h: player.height
     };
     for (const c of cats) {
       const b = {
-        x: c.x, y: HEIGHT - (GROUND_HEIGHT + c.y + c.height),
+        x: c.x, y: getGameHeight() - (GROUND_HEIGHT + c.y + c.height),
         w: c.width, h: c.height
       };
       if (!(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h)) {
-        endGame();
-        break;
+        // Collision: game over
+        onGameOver();
+        return;
       }
     }
   }
@@ -952,7 +975,7 @@
     barriers.length = 0;
     
     const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
-    player.x = Math.min(60, WIDTH * 0.1);
+    player.x = Math.min(60, getGameWidth() * 0.1);
     player.y = roadCenterOffset;
     player.vx = 0;
     player.vy = 0;
@@ -985,7 +1008,7 @@
     scheduleNextBarrier();
     
     // Réinitialiser les barrières
-    for (let i = 0; i < Math.ceil(WIDTH / 27); i++) {
+    for (let i = 0; i < Math.ceil(getGameWidth() / 27); i++) {
       const el = document.createElement('div');
       el.className = 'barrier';
       el.style.left = (i * 27) + 'px';
@@ -1293,15 +1316,17 @@
       el.style.backgroundImage = 'url(assets/img/cloud.svg)';
     }
     
-    const top = 8 + Math.random() * (HEIGHT * 0.27);
+    // Raise altitude, especially in landscape
+    const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+    const top = (isLandscape ? 4 : 8) + Math.random() * (getGameHeight() * (isLandscape ? 0.18 : 0.24));
     el.style.top = top + 'px';
     
-    const w = isPlane ? Math.min(96, WIDTH * 0.16) : Math.min(72, WIDTH * 0.12);
-    const h = isPlane ? Math.min(36, WIDTH * 0.06) : Math.min(32, WIDTH * 0.053);
+    const w = isPlane ? Math.min(96, getGameWidth() * 0.16) : Math.min(72, getGameWidth() * 0.12);
+    const h = isPlane ? Math.min(36, getGameWidth() * 0.06) : Math.min(32, getGameWidth() * 0.053);
     el.style.width = w + 'px';
     el.style.height = h + 'px';
     
-    const startX = directionRight ? -w - 20 : WIDTH + 20;
+    const startX = directionRight ? -w - 20 : getGameWidth() + 20;
     el.style.left = startX + 'px';
     game.appendChild(el);
     
@@ -1319,7 +1344,7 @@
       const nx = x + dir * speed * dt;
       el.style.left = nx + 'px';
       
-      if (directionRight ? nx > WIDTH + 100 : nx < -w - 100) {
+      if (directionRight ? nx > getGameWidth() + 100 : nx < -w - 100) {
         alive = false;
         el.remove();
         return;
