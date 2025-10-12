@@ -31,27 +31,28 @@
       #controls { 
         display: none !important;
       }
-      .barrier {
-        height: 50px;
-      }
+      .barrier { height: 30px; }
+      .barrier-rail { bottom: calc(var(--ground-height) + 30px); }
       #hills-canvas {
         height: 120px;
       }
       #sun, #moon {
         transform: scale(0.7);
       }
+      /* Smaller arrows in portrait */
+      #touch-controls button { width: 36px; height: 36px; font-size: 16px; }
     }
     /* Landscape orientation on mobile/tablet: ensure barriers fully visible, controls hidden by default */
     @media (max-width: 1024px) and (orientation: landscape) {
       :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vh; }
       #controls { display: none !important; }
-      .barrier { height: 60px; }
-      .barrier-rail { bottom: calc(var(--ground-height) + 60px); }
+      .barrier { height: 36px; }
+      .barrier-rail { bottom: calc(var(--ground-height) + 36px); }
       #hills-canvas { height: 140px; }
       /* Leave room under the game for arrows */
-      body { padding-bottom: 64px; }
+      body { padding-bottom: 40px; }
       #touch-controls { bottom: 10px; }
-      #touch-controls button { width: 40px; height: 40px; font-size: 18px; }
+      #touch-controls button { width: 28px; height: 28px; font-size: 14px; }
       #mobile-actions { display: flex; position: fixed; top: 8px; right: 8px; z-index: 70; }
     }
     html, body {
@@ -202,7 +203,7 @@
       position: absolute; inset: 0; background: rgba(0,0,0,0.45);
       color: #fff; display: none; align-items: center;
       justify-content: center; text-align: center;
-      z-index: 60;
+      z-index: 80;
     }
     .overlay.show { display: flex; }
     .overlay .panel {
@@ -274,7 +275,7 @@
       #touch-controls { display: flex; }
     }
     /* Make mobile settings dialog overlay everything */
-    #mobile-settings { z-index: 60 !important; }
+    #mobile-settings { z-index: 80 !important; }
     #controls label {
       display: inline-flex; align-items: center; gap: 6px;
       font-weight: 600; white-space: nowrap; font-size: 14px;
@@ -367,9 +368,11 @@
     // Taller game area in both orientations to reveal feet and road bottom
     const gameH = Math.round(vh * (portrait ? 0.72 : 0.78));
     const groundH = Math.round(vh * (portrait ? 0.06 : 0.10));
-    // Apply sizes directly to #game to avoid stale media-query caches
+    // Apply sizes directly to #game and update CSS vars
     game.style.width = vw + 'px';
     game.style.height = gameH + 'px';
+    document.documentElement.style.setProperty('--game-width', vw + 'px');
+    document.documentElement.style.setProperty('--game-height', gameH + 'px');
     // Sync CSS var for ground height (used by some styles)
     document.documentElement.style.setProperty('--ground-height', groundH + 'px');
     // Ensure hills canvas adapts
@@ -817,6 +820,7 @@
 
   // Adapter au redimensionnement: redessiner les collines et reconstruire les barrières
   window.addEventListener('resize', () => {
+    applyResponsiveLayout();
     drawHills();
     // Rebuild barriers to fill full width after orientation change
     for (const b of barriers) b.el.remove();
@@ -835,7 +839,7 @@
   // Gérer la rotation: reconstruire après stabilisation du layout
   window.addEventListener('orientationchange', () => {
     setTimeout(() => {
-      // Trigger same logic as resize
+      applyResponsiveLayout();
       const evt = new Event('resize');
       window.dispatchEvent(evt);
     }, 250);
@@ -996,6 +1000,11 @@
     running = false;
     overlay.classList.add('show');
     if (backgroundMusic) backgroundMusic.pause();
+    // Hide touch controls and mobile actions to avoid overlap while Game Over is shown
+    const tc = document.getElementById('touch-controls');
+    const ma = document.getElementById('mobile-actions');
+    if (tc) tc.style.display = 'none';
+    if (ma) ma.style.display = 'none';
   }
   
   function restart() {
@@ -1048,6 +1057,11 @@
     
     lastTime = performance.now();
     requestAnimationFrame(loop);
+    // Restore controls visibility after restart
+    const tc = document.getElementById('touch-controls');
+    const ma = document.getElementById('mobile-actions');
+    if (tc) tc.style.display = 'flex';
+    if (ma) ma.style.display = 'flex';
   }
   
   function startGame() {
