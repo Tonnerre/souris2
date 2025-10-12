@@ -20,10 +20,11 @@
     }
     @media (max-width: 768px) {
       :root { --game-width: 100vw; --game-height: 55vh; --ground-height: 6vh; }
-      body { padding: 28px 0 36px 0; justify-content: flex-start; overflow: hidden; }
+      body { padding: 8px 0 48px 0; justify-content: flex-start; overflow: hidden; }
       #game { margin: 0; }
       #hud { font-size: 11px; top: 24px; left: 4px; padding: 3px 6px; display: flex; flex-direction: column; gap: 2px; }
-      #controls { display: none !important; }
+      /* Ne pas forcer ici: gestion via media query coarse-pointer plus bas */
+      #controls { display: initial !important; }
       #signature {
         font-size: 8px;
         top: 2px !important;
@@ -36,7 +37,9 @@
         text-align: left;
       }
       /* Smaller arrows in portrait */
-      #touch-controls button { width: 22px; height: 22px; font-size: 12px; }
+      #touch-controls button { width: 44px; height: 44px; font-size: 20px; }
+      /* Super saut portrait: visible et centré en bas */
+      #touch-super-jump { display: block; position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%); width: 56px; height: 56px; border-radius: 50%; background: rgba(60, 60, 150, 0.85); border: 4px solid rgba(255, 255, 255, 0.95); color: white; font-size: 22px; font-weight: bold; cursor: pointer; touch-action: none; user-select: none; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7); }
       /* Super saut bouton en portrait */
       #touch-super-jump {
         transition: all 0.1s;
@@ -48,25 +51,26 @@
     /* Landscape orientation on mobile/tablet: ensure barriers fully visible, controls hidden by default */
     @media (max-width: 1024px) and (orientation: landscape) {
       :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vh; }
-      #controls { display: none !important; }
+      /* Ne pas masquer ici: gestion via media query coarse-pointer plus bas */
+      #controls { display: initial !important; }
       .barrier { height: 36px; }
       #hills-canvas { height: 140px; }
       /* Laisser moins de marge: flèches plus petites */
-      body { padding-bottom: 20px; }
-      #touch-controls button { width: 20px; height: 20px; font-size: 12px; }
+      body { padding-bottom: 28px; }
+      #touch-controls button { width: 36px; height: 36px; font-size: 18px; }
       #touch-super-jump {
         display: block;
-        position: absolute;
-        bottom: 10px;
+        position: fixed;
+        bottom: 12px;
         left: 50%;
         transform: translateX(-50%);
-        width: 48px;
-        height: 48px;
+        width: 52px;
+        height: 52px;
         border-radius: 50%;
         background: rgba(60, 60, 150, 0.85);
         border: 4px solid rgba(255, 255, 255, 0.95);
         color: white;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: bold;
         cursor: pointer;
         touch-action: none;
@@ -267,13 +271,13 @@
     }
     #touch-controls button {
       pointer-events: auto;
-      width: 75px;
-      height: 75px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
       border: 4px solid rgba(255, 255, 255, 0.95);
       background: rgba(40, 40, 40, 0.85);
       color: white;
-      font-size: 32px;
+      font-size: 24px;
       font-weight: bold;
       cursor: pointer;
       touch-action: none;
@@ -306,6 +310,10 @@
     @media (hover: none) and (pointer: coarse) {
       #mobile-actions { display: flex; }
       #touch-controls { display: flex; }
+      /* Masquer les réglages PC sur mobile */
+      #controls { display: none !important; }
+      /* Toujours afficher le bouton super saut sur mobile */
+      #touch-super-jump { display: block; }
     }
     /* Make mobile settings dialog overlay everything */
     #mobile-settings { z-index: 80 !important; }
@@ -1338,6 +1346,34 @@
       }
     }, { passive: false });
   }
+  // Bouton tactile Super Saut: arme le prochain saut (équivalent touche 'S')
+  const touchSuperJump = document.getElementById('touch-super-jump');
+  if (touchSuperJump) {
+    const armSuper = () => {
+      nextJumpSuper = true;
+      const superStatus = document.getElementById('superStatus');
+      if (superStatus) superStatus.textContent = 'armé';
+    };
+    touchSuperJump.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      touchSuperJump.classList.add('pressed');
+      armSuper();
+    }, { passive: false });
+    touchSuperJump.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      touchSuperJump.classList.remove('pressed');
+    }, { passive: false });
+    touchSuperJump.addEventListener('click', (e) => {
+      e.preventDefault();
+      touchSuperJump.classList.add('pressed');
+      armSuper();
+      setTimeout(() => touchSuperJump.classList.remove('pressed'), 100);
+    });
+    touchSuperJump.addEventListener('mousedown', () => touchSuperJump.classList.add('pressed'));
+    touchSuperJump.addEventListener('mouseup', () => touchSuperJump.classList.remove('pressed'));
+  }
   const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
   const mobileSettings = document.getElementById('mobile-settings');
   const closeSettings = document.getElementById('close-settings');
@@ -1347,8 +1383,6 @@
   if (window.innerWidth <= 768) {
     if (mobileSettingsBtn) mobileSettingsBtn.style.display = 'block';
   }
-  
-  // Copier les contrôles dans le panneau mobile
   if (mobileControlsContainer) {
     const controls = document.getElementById('controls');
     if (controls) {
