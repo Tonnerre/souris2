@@ -1,0 +1,143 @@
+/* Style général */
+body {
+  margin: 0;
+  background: #dfe6f1;
+  overflow: hidden;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+/* Scène du jeu */
+#game {
+  position: relative;
+  width: 600px;
+  height: 220px; /* un peu plus haut pour laisser de la place au ciel */
+  margin: 50px auto;
+  background: linear-gradient(#b9dcff 0%, #d6ecff 70%, #ffffff 100%);
+  border: 2px solid #222;
+  overflow: hidden;
+}
+
+/* Silhouette de ville en arrière-plan (bâtiments) */
+#game::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 40px; /* hauteur du trottoir */
+  height: 90px;
+  background:
+    /* rangée lointaine, plus claire */
+    repeating-linear-gradient(
+      to right,
+      #9bb3c9 0 30px,
+      #9bb3c9 30px,
+      #9bb3c9 40px
+    );
+  mask: 
+    /* silhouettes de hauteurs variées via dégradé vertical pour bords supérieurs */
+    linear-gradient(#000 60%, transparent 61%) top/100% 100% no-repeat,
+    /* créneaux irréguliers simulés par un motif répétitif vertical */
+    repeating-linear-gradient(to right, #000 0 10px, transparent 10px 20px);
+  opacity: 0.55;
+}
+
+/* Deuxième rangée de bâtiments (plus sombre, plus proche) */
+#game::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 40px;
+  height: 70px;
+  background:
+    repeating-linear-gradient(
+      to right,
+      #7b8fa5 0 20px,
+      #7b8fa5 20px,
+      #7b8fa5 36px
+    );
+  transform: translateY(6px);
+  opacity: 0.7;
+}
+
+/* Trottoir */
+.sidewalk {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background:
+    linear-gradient(#b1b6be, #939aa4);
+  border-top: 2px solid #707782;
+}
+/* lignes du trottoir */
+.sidewalk::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 8px;
+  height: 2px;
+  background: #838a95;
+  opacity: 0.6;
+}
+.sidewalk::after {
+  content: "";
+  position: absolute;
+  left: -50%;
+  right: -50%;
+  bottom: 8px;
+  height: 6px;
+  background: repeating-linear-gradient(
+    to right,
+    transparent 0 50px,
+    rgba(255,255,255,0.7) 50px 80px,
+    transparent 80px 130px
+  );
+  transform: skewX(-12deg);
+  opacity: 0.5;
+}
+
+/* Sprites */
+#souris {
+  position: absolute;
+  bottom: 0;
+  left: 50px;
+  width: 50px;
+  height: 50px;
+  background: url("../img/souris.jpg") no-repeat center;
+  background-size: contain;
+}
+.chat {
+  position: absolute;
+  bottom: 0;
+  width: 50px;
+  height: 50px;
+  background: url("../img/chat.jpg") no-repeat center;
+  background-size: contain;
+}
+
+/* Objets du ciel (avion/nuage) */
+.sky-object {
+  position: absolute;
+  top: 10px;
+  width: 48px;
+  height: 24px;
+  will-change: transform;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+/* Accessibilité visuelle */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 1px, 1px);
+  white-space: nowrap;
+  border: 0;
+}

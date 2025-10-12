@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jeu de la souris — Jouable</title>
+
+  <!-- Préchargement des assets principaux -->
+  <link rel="preload" as="image" href="assets/img/souris.png" />
+  <link rel="preload" as="image" href="assets/img/chat.png" />
+  <link rel="preload" as="image" href="assets/img/aviondg.png" />
+  <link rel="preload" as="image" href="assets/img/aviongd.png" />
+  <link rel="preload" as="image" href="assets/img/cloud.svg" />
+  <link rel="preload" as="audio" href="assets/sounds/backgound.mp3" />
+
+  <style>
+    /* ====== Cadre général ====== */
+    :root {
+      --game-width: min(90vw, 1200px);
+      --game-height: min(36vw, 480px); /* ratio ~2.5:1 */
+      --ground-height: min(5vw, 60px);
+      --border-color: #222;
+      --sky-top: #b9dcff;
+      --sky-bottom: #ffffff;
+    }
+    /* Ajustements pour petits écrans */
+    @media (max-width: 768px) {
+      :root {
+        --game-width: 95vw;
+        --game-height: 50vh;
+        --ground-height: 8vw;
+      }
+    }
+    @media (max-width: 480px) {
+      :root {
+        --game-width: 98vw;
+        --game-height: 45vh;
+        --ground-height: 10vw;
+      }
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #dfe6f1;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      height: 100%;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 8px;
+      box-sizing: border-box;
+    }
+
+    /* Panneau de contrôle */
+    #controls {
+      position: relative;
+      width: var(--game-width);
+      margin: 8px auto 0 auto;
+      font-size: clamp(11px, 2vw, 14px);
+      color: #1f2a36;
+      background: rgba(255,255,255,0.7);
+      border: 1px solid #b8c6d8;
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+    #controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    #controls input[type="range"] {
+      vertical-align: middle;
+      min-width: 80px;
+      max-width: 150px;
+    }
+    #controls button {
+      font-size: clamp(10px, 1.8vw, 13px);
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+    /* Masquer les séparateurs sur mobile */
+    @media (max-width: 768px) {
+      #controls {
+        gap: 6px;
+      }
+    }
+
+    /* ====== Scène de jeu ====== */
+    #game {
+      position: relative;
+      width: var(--game-width);
+      height: var(--game-height);
+      background: linear-gradient(var(--sky-top) 0%, #d6ecff 70%, var(--sky-bottom) 100%);
+      border: 2px solid var(--border-color);
+      overflow: hidden;
+      user-select: none;
+      touch-action: none;
+    }
+
+    /* Bouton Jouer centré au démarrage */
+    #startCenter {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.20);
+      z-index: 30;
+    }
+    #startCenter button {
+      font-size: clamp(16px, 3vw, 18px);
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid #2d4666;
+      background: #3a6ea5;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    /* HUD Score */
+    #hud {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      padding: 4px 8px;
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+      font-weight: 700;
+      font-size: clamp(10px, 2vw, 14px);
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.25);
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    
+    .hill-segment {
+      position: absolute;
+      bottom: 0;
+      width: 200px;
+      height: 80px;
+      pointer-events: none;
+    }
+    
+    .hill-segment svg {
+      width: 100%;
+      height: 100%;
+    }
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: var(--ground-height);
+      height: 120px;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    
+    .house::before {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: -5px;
+      right: -5px;
+      height: 25px;
+      background: linear-gradient(to bottom, #8b4a3a 0%, #6d3829 100%);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+    .house::after {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      width: 12px;
+      height: 12px;
+      background: #5a7a9a;
+      box-shadow: 20px 0 0 #5a7a9a, 0 18px 0 #5a7a9a, 20px 18px 0 #5a7a9a;
+    }
+    
+    .castle::before {
+      content: "";
+      position: absolute;
+      bottom: 100%;
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: repeating-linear-gradient(to right, #7a8a9a 0 8px, transparent 8px 12px);
+    }
+    .castle::after {
+      content: "";
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      width: 20px;
+      height: 30px;
+      background: #5a6a7a;
+    }
+    
+    .tree::before {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      left: 15px;
+      width: 10px;
+      height: 25px;
+      background: #6b4423;
+    }
+    .tree::after {
+      content: "";
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      width: 40px;
+      height: 40px;
+      background: #2d5016;
+      border-radius: 50% 50% 0 0;
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+
+    /* Trottoir */
+    .sidewalk {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--ground-height);
+      background: linear-gradient(#b1b6be, #939aa4);
+      border-top: 2px solid #707782;
+    }
+    .sidewalk::before {
+      content: "";
+      position: absolute;
+      left: 0; right: 0; top: 8px;
+      height: 2px;
+      background: #838a95;
+      opacity: 0.6;
+    }
+    .sidewalk::after {
+      content: "";
+      position: absolute;
+      left: -50%; right: -50%; bottom: 8px;
+      height: 6px;
+      background: repeating-linear-gradient(
+        to right,
+        transparent 0 50px,
+        rgba(255,255,255,0.7) 50px 80px,
+        transparent 80px 130px
+      );
+      transform: skewX(-12deg);
+      opacity: 0.5;
+    }
+
+    /* ====== Sprites ====== */
+    #souris, .chat {
+      position: absolute;
+      bottom: var(--ground-height);
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: contain;
+    }
+    #souris {
+      left: min(60px, 10vw);
+      background-image: url("assets/img/souris.png");
+      outline: none;
+      z-index: 10; /* souris toujours au-dessus */
+      /* Taille responsive agrandie */
+      width: min(48px, 6.5vw);
+      height: min(48px, 6.5vw);
+      /* Orientation naturelle (pas de rotation) */
+    }
+    .chat {
+      background-image: url("assets/img/chat.png");
+      /* Taille responsive : 1.5x la souris */
+      width: min(72px, 9.75vw);
+      height: min(72px, 9.75vw);
+      /* Image à la taille de la boîte pour une apparence plus grande */
+      background-size: 100% 100%;
+      z-index: 5;
+      /* Orientation naturelle (pas de rotation) */
+    }
+
+    /* Objets du ciel */
+    .sky-object {
+      position: absolute;
+      top: 8px;
+      width: min(96px, 12vw);
+      height: min(36px, 4.5vw);
+      background-repeat: no-repeat;
+      background-size: contain;
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    /* Overlay Game Over */
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      color: #fff;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 16px;
+    }
+    .overlay.show {
+      display: flex;
+    }
+    .overlay .panel {
+      background: rgba(0,0,0,0.55);
+      padding: 16px 20px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.25);
+    }
+    .overlay h2 {
+      margin: 0 0 8px;
+      font-size: clamp(16px, 3vw, 20px);
+    }
+    .overlay p {
+      margin: 4px 0;
+      font-size: clamp(12px, 2vw, 14px);
+      opacity: 0.95;
+    }
+
+    /* Accessibilité visuelle */
+    .visually-hidden {
+      position: absolute !important;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,1px,1px);
+      white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="game" role="application" aria-label="Jeu de souris contre chats">
+    <div id="startCenter"><button id="startPlayBtn" type="button">Jouer</button></div>
+    <div id="hud" aria-live="polite">Score: <span id="score">0</span> • Niveau: <span id="level">1</span> • Super: <span id="superStatus">—</span> • État: <span id="pauseState">en cours</span></div>
+    <div class="sidewalk" aria-hidden="true"></div>
+    <div id="souris" aria-label="souris" tabindex="0"></div>
+    <div id="overlay" class="overlay" aria-live="polite" aria-atomic="true">
+      <div class="panel">
+        <h2>Game Over</h2>
+        <p>Appuyez sur R pour recommencer</p>
+        <p>Contrôles: ← → pour bouger, Espace pour sauter</p>
+        <p style="margin-top:10px"><button id="overlayPlayBtn" type="button" style="font-size:16px;padding:6px 12px">Jouer</button></p>
+      </div>
+    </div>
+    <span class="visually-hidden" id="instructions">
+      Contrôles: flèches gauche/droite pour bouger, Espace pour sauter. Évitez les chats.
+    </span>
+  </div>
+
+  <!-- Musique de fond -->
+  <audio id="backgroundMusic" loop>
+    <source src="assets/sounds/backgound.mp3" type="audio/mpeg">
+  </audio>
+
+  <div id="controls" aria-label="Réglages du jeu">
+    <label for="jumpScale">
+      Portée du saut
+      <input id="jumpScale" type="range" min="0.6" max="1.8" step="0.05" value="1.0" />
+      <span id="jumpValue">1.00×</span>
+    </label>
+    <label for="jumpHeight">
+      Hauteur du saut (± au clavier)
+      <input id="jumpHeight" type="range" min="0.6" max="2.5" step="0.05" value="1.8" />
+      <span id="jumpHeightValue">1.80×</span>
+    </label>
+    <button id="focusGameBtn" type="button">Reprendre le contrôle</button>
+    <button id="superJumpBtn" type="button" disabled>Super Saut (S)</button>
+    <button id="playBtn" type="button">Jouer</button>
+    <button id="pauseBtn" type="button">Pause</button>
+  </div>
+
+  <script>
+    (function () {
+      // ====== Références DOM ======
+      const game = document.getElementById('game');
+      const souris = document.getElementById('souris');
+      const overlay = document.getElementById('overlay');
+      const backgroundMusic = document.getElementById('backgroundMusic');
+
+      // ====== Constantes de jeu ======
+      const WIDTH = parseInt(getComputedStyle(game).width, 10) || 600;
+      const HEIGHT = parseInt(getComputedStyle(game).height, 10) || 240;
+      const GROUND_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ground-height')) || 40;
+
+      const FLOOR_Y = GROUND_HEIGHT; // bottom CSS fixé à GROUND_HEIGHT
+      const GRAVITY = 1800;          // px/s²
+      const MOVE_ACCEL = 2200;       // px/s²
+      const MAX_SPEED_X = 240;       // px/s
+      const JUMP_VELOCITY = 560;     // px/s
+      const JUMP_RANGE_IMPULSE = 120;// impulsion horizontale appliquée au saut (px/s)
+      const JUMP_SCALE_MIN = 0.6;
+      const JUMP_SCALE_MAX = 2.5;
+      const JUMP_SCALE_STEP = 0.05;
+      const FRICTION = 2000;         // px/s² (au sol)
+      const CAT_MIN_SPEED = 80;      // px/s
+      const CAT_MAX_SPEED = 160;     // px/s
+      const SKY_MIN_DELAY = 5.0;     // s
+      const SKY_MEAN_EXTRA = 6.0;    // s
+      const SCORE_RATE = 10;         // points par seconde
+
+      // Facteurs ajustables
+      let jumpRangeScale = 1.0;   // portée (impulsion horizontale)
+      let jumpHeightScale = 1.0;  // hauteur (vitesse verticale)
+      // Super saut
+      let nextJumpSuper = false;  // armé pour le prochain saut
+
+      // ====== État ======
+      let running = false;
+      let gameOver = false;
+
+      const input = {
+        left: false,
+        right: false,
+        jump: false,
+      };
+
+      // Calculer les tailles en fonction de la largeur du jeu
+      const getMouseSize = () => Math.min(48, WIDTH * 0.08);
+      const getCatSize = () => getMouseSize() * 1.5; // Chat 1.5x plus gros que la souris
+      
+      // Forcer la taille visuelle de la souris au démarrage
+      const mouseSize = getMouseSize();
+      souris.style.width = mouseSize + 'px';
+      souris.style.height = mouseSize + 'px';
+      souris.style.backgroundSize = 'contain';
+
+      const player = {
+        x: Math.min(60, WIDTH * 0.1), // position horizontale
+        y: 0,  // offset vertical au-dessus du sol (0 = sur le sol)
+        vx: 0,
+        vy: 0,
+        width: mouseSize,
+        height: mouseSize,
+        onGround: true
+      };
+
+      const cats = []; // {el, x, y, vx, width, height}
+      
+      // Score (basé sur le temps) et niveaux
+      const scoreEl = document.getElementById('score');
+      const levelEl = document.getElementById('level');
+      let score = 0;          // entier affiché
+      let scoreAccum = 0;     // accumulateur fractionnaire (points)
+      let level = 1;
+      let nextLevelAt = 125;   // +1 niveau tous les 125 points (fixe)
+      let nextCatTime = 0; // temps (s) avant prochain chat
+
+      // ====== Utilitaires ======
+      function clamp(v, min, max) {
+        return Math.max(min, Math.min(max, v));
+      }
+      function randExpMean(meanSeconds) {
+        const u = Math.random();
+        return -Math.log(1 - u) * meanSeconds;
+      }
+      function scheduleNextCat() {
+        const mean = 4.5; // moyenne ~4.5s
+        nextCatTime = randExpMean(mean);
+        nextCatTime = Math.max(1.0, nextCatTime); // min 1s
+      }
+        const mean = 2.5; // moyenne ~2.5s
+        nextLandscapeTime = randExpMean(mean);
+        nextLandscapeTime = Math.max(0.8, nextLandscapeTime); // min 0.8s
+      }
+      function rectsIntersect(a, b) {
+        return !(
+          a.x + a.w < b.x ||
+          a.x > b.x + b.w ||
+          a.y + a.h < b.y ||
+          a.y > b.y + b.h
+        );
+      }
+
+      // ====== Création d’objets ======
+      
+      
+      function spawnCat() {
+        const el = document.createElement('div');
+        el.className = 'chat';
+        el.style.left = WIDTH + 'px';
+        el.style.bottom = GROUND_HEIGHT + 'px';
+        game.appendChild(el);
+
+        // Forcer la taille visuelle de l'élément chat créé
+        const catSize = getCatSize();
+        el.style.width = catSize + 'px';
+        el.style.height = catSize + 'px';
+        el.style.backgroundSize = '100% 100%';
+
+        const speed = CAT_MIN_SPEED + Math.random() * (CAT_MAX_SPEED - CAT_MIN_SPEED);
+        cats.push({
+          el,
+          x: WIDTH,
+          y: 0,
+          vx: -speed,
+          width: catSize,
+          height: catSize
+        });
+      }
+
+      function spawnSkyObject() {
+        const el = document.createElement('div');
+        el.className = 'sky-object';
+        const isPlane = Math.random() < 0.35;
+        const directionRight = Math.random() < 0.5;
+        if (isPlane) {
+          // Image selon le sens: aviongd (gauche→droite), aviondg (droite→gauche)
+          const img = directionRight ? 'assets/img/aviongd.png' : 'assets/img/aviondg.png';
+          el.style.backgroundImage = `url(${img})`;
+        } else {
+          el.style.backgroundImage = 'url(assets/img/cloud.svg)';
+        }
+        const top = 8 + Math.random() * (HEIGHT * 0.27);
+        el.style.top = top + 'px';
+
+        const w = isPlane ? Math.min(96, WIDTH * 0.16) : Math.min(72, WIDTH * 0.12);
+        const h = isPlane ? Math.min(36, WIDTH * 0.06) : Math.min(32, WIDTH * 0.053);
+        el.style.width = w + 'px';
+        el.style.height = h + 'px';
+
+        const startX = directionRight ? -w - 20 : WIDTH + 20;
+        el.style.left = startX + 'px';
+        game.appendChild(el);
+
+        const speed = isPlane ? (90 + Math.random() * 70) : (40 + Math.random() * 30);
+        const dir = directionRight ? 1 : -1;
+
+        let alive = true;
+        let lastT = performance.now();
+        function loop(t) {
+          if (!alive) return;
+          const dt = (t - lastT) / 1000;
+          lastT = t;
+
+          const x = parseFloat(el.style.left);
+          const nx = x + dir * speed * dt;
+          el.style.left = nx + 'px';
+
+          if (directionRight ? nx > WIDTH + 100 : nx < -w - 100) {
+            alive = false;
+            el.remove();
+            return;
+          }
+          requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+
+        const delay = SKY_MIN_DELAY + randExpMean(SKY_MEAN_EXTRA);
+        setTimeout(spawnSkyObject, delay * 1000);
+      }
+
+      // ====== Entrées clavier ======
+      function onKeyDown(e) {
+        if (
+          e.code === 'ArrowLeft' || e.code === 'ArrowRight' || e.code === 'Space' || e.code === 'ArrowUp' ||
+          e.code === 'KeyA' || e.code === 'KeyD' || e.code === 'KeyW'
+        ) {
+          e.preventDefault();
+        }
+        if (gameOver && e.code === 'KeyR') {
+          restart();
+          return;
+        }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') input.jump = true;
+      }
+      function onKeyUp(e) {
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+        if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') input.jump = false;
+      }
+      document.addEventListener('keydown', onKeyDown, {passive:false, capture:true});
+      document.addEventListener('keyup', onKeyUp, {capture:true});
+
+      // ====== Contrôles tactiles (mobile) ======
+      let touchStartX = 0;
+      let touchStartY = 0;
+      game.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+      }, {passive: true});
+
+      game.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) {
+          const touchX = e.touches[0].clientX;
+          const touchY = e.touches[0].clientY;
+          const deltaX = touchX - touchStartX;
+          const deltaY = touchY - touchStartY;
+          
+          // Détecter direction horizontale
+          if (Math.abs(deltaX) > 20) {
+            input.left = deltaX < -20;
+            input.right = deltaX > 20;
+          } else {
+            input.left = false;
+            input.right = false;
+          }
+          
+          // Swipe vers le haut pour sauter
+          if (deltaY < -30 && !input.jump) {
+            input.jump = true;
+            setTimeout(() => { input.jump = false; }, 200);
+          }
+        }
+      }, {passive: true});
+
+      game.addEventListener('touchend', () => {
+        input.left = false;
+        input.right = false;
+      }, {passive: true});
+
+      // ====== Boucle de jeu ======
+      let lastTime = performance.now();
+      scheduleNextCat();
+      setTimeout(spawnSkyObject, 1500 + Math.random() * 1200);
+
+      function update(dt) {
+        if (!running) return;
+
+        // Mouvement horizontal (accélération/freinage)
+        if (input.left) {
+          player.vx -= MOVE_ACCEL * dt;
+        } else if (input.right) {
+          player.vx += MOVE_ACCEL * dt;
+        } else if (player.onGround) {
+          if (player.vx > 0) {
+            player.vx = Math.max(0, player.vx - FRICTION * dt);
+          } else if (player.vx < 0) {
+            player.vx = Math.min(0, player.vx + FRICTION * dt);
+          }
+        }
+        player.vx = Math.max(-MAX_SPEED_X, Math.min(MAX_SPEED_X, player.vx));
+
+        // Saut
+        if (input.jump && player.onGround) {
+          // Hauteur du saut: ajuster la vitesse verticale
+          const heightBoost = nextJumpSuper ? 1.8 : 1.0;
+          player.vy = JUMP_VELOCITY * jumpHeightScale * heightBoost;
+
+          // Portée du saut: impulsion horizontale selon la direction
+          let dir = 0;
+          if (input.right && !input.left) dir = 1;
+          else if (input.left && !input.right) dir = -1;
+          else if (player.vx !== 0) dir = Math.sign(player.vx);
+          if (dir !== 0) {
+            const rangeBoost = nextJumpSuper ? 1.5 : 1.0;
+            player.vx += dir * JUMP_RANGE_IMPULSE * jumpRangeScale * rangeBoost;
+          }
+          // Consommer le super saut
+          nextJumpSuper = false;
+          player.onGround = false;
+        }
+
+        // Gravité
+        if (!player.onGround) {
+          player.vy -= GRAVITY * dt;
+        }
+
+        // Intégration positions
+        player.x += player.vx * dt;
+        player.x = Math.max(0, Math.min(WIDTH - player.width, player.x));
+
+        player.y += player.vy * dt;
+        if (player.y <= 0) {
+          player.y = 0;
+          player.vy = 0;
+          player.onGround = true;
+        }
+
+        // Appliquer au DOM
+        souris.style.left = Math.round(player.x) + 'px';
+        souris.style.bottom = (GROUND_HEIGHT + Math.round(player.y)) + 'px';
+
+        // Score basé sur le temps: gain constant
+        scoreAccum += dt * SCORE_RATE;
+        const inc = Math.floor(scoreAccum);
+        if (inc > 0) {
+          score += inc;
+          scoreAccum -= inc;
+          if (scoreEl) scoreEl.textContent = String(score);
+          // Gestion des niveaux
+          while (score >= nextLevelAt) {
+            level += 1;
+            if (levelEl) levelEl.textContent = String(level);
+            nextLevelAt += 125;
+          }
+        }
+
+        // Chats: déplacement + suppression hors écran
+        for (let i = cats.length - 1; i >= 0; i--) {
+          const c = cats[i];
+          c.x += c.vx * dt;
+          if (c.x < -c.width - 20) {
+            c.el.remove();
+            cats.splice(i, 1);
+            continue;
+          }
+          c.el.style.left = Math.round(c.x) + 'px';
+        }
+
+        // Apparition chats (chronomètre)
+        nextCatTime -= dt;
+        if (nextCatTime <= 0) {
+          spawnCat();
+          scheduleNextCat();
+        }
+
+        // État Super Saut (manuel seulement)
+        if (superStatus) superStatus.textContent = nextJumpSuper ? 'armé' : '—';
+        if (superJumpBtn) superJumpBtn.disabled = false;
+
+        // Collision
+        const a = {
+          x: player.x,
+          y: HEIGHT - (GROUND_HEIGHT + player.y + player.height),
+          w: player.width,
+          h: player.height
+        };
+        for (const c of cats) {
+          const b = {
+            x: c.x,
+            y: HEIGHT - (GROUND_HEIGHT + c.y + c.height),
+            w: c.width,
+            h: c.height
+          };
+          if (!(
+            a.x + a.w < b.x ||
+            a.x > b.x + b.w ||
+            a.y + a.h < b.y ||
+            a.y > b.y + b.h
+          )) {
+            endGame();
+            break;
+          }
+        }
+      }
+
+      function loop(t) {
+        const dt = Math.min(0.033, (t - lastTime) / 1000);
+        lastTime = t;
+        if (!gameOver) {
+          update(dt);
+          requestAnimationFrame(loop);
+        }
+      }
+      requestAnimationFrame(loop);
+
+      function endGame() {
+        gameOver = true;
+        running = false;
+        overlay.classList.add('show');
+        // Mettre la musique en pause
+        if (backgroundMusic) backgroundMusic.pause();
+      }
+
+      function restart() {
+        for (const c of cats) c.el.remove();
+        cats.length = 0;
+
+        player.x = 60;
+        player.y = 0;
+        player.vx = 0;
+        player.vy = 0;
+        player.onGround = true;
+
+        // Réinitialiser score et niveau
+        score = 0;
+        scoreAccum = 0;
+        nextJumpSuper = false;
+        level = 1;
+        nextLevelAt = 125;
+        if (scoreEl) scoreEl.textContent = '0';
+        if (levelEl) levelEl.textContent = '1';
+
+        // Repartir la partie
+        gameOver = false;
+        running = true;
+        overlay.classList.remove('show');
+        // Relancer la musique
+        if (backgroundMusic) {
+          backgroundMusic.currentTime = 0;
+          backgroundMusic.play().catch(err => console.log('Autoplay bloqué:', err));
+        }
+        scheduleNextCat();
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      }
+
+      // Focus utilitaire
+      souris.setAttribute('tabindex', '0');
+      const focusGame = () => {
+        if (document.activeElement && document.activeElement.blur && document.activeElement !== document.body) {
+          try { document.activeElement.blur(); } catch {}
+        }
+        souris.focus();
+      };
+      focusGame();
+
+      // Démarrage fiable du jeu
+      function startGame() {
+        // Masquer les couches de démarrage
+        const startCenter = document.getElementById('startCenter');
+        if (startCenter) startCenter.style.display = 'none';
+        overlay.classList.remove('show');
+        // Réactiver le jeu
+        gameOver = false;
+        running = true;
+        // Démarrer la musique de fond
+        if (backgroundMusic) {
+          backgroundMusic.volume = 0.5; // Volume à 50%
+          backgroundMusic.play().catch(err => console.log('Autoplay bloqué:', err));
+        }
+        // Assurer la boucle
+        try { requestAnimationFrame(loop); } catch {}
+        // Focus
+        focusGame();
+      }
+
+      overlay.addEventListener('click', () => { if (gameOver) restart(); else startGame(); });
+
+      // Bouton "Reprendre le contrôle"
+      const focusGameBtn = document.getElementById('focusGameBtn');
+      if (focusGameBtn) focusGameBtn.addEventListener('click', focusGame);
+      game.addEventListener('pointerdown', focusGame);
+
+      // Super Saut UI
+      const superJumpBtn = document.getElementById('superJumpBtn');
+      const superStatus = document.getElementById('superStatus');
+      if (superJumpBtn) {
+        superJumpBtn.addEventListener('click', () => {
+          nextJumpSuper = true; // armer manuellement, un seul saut
+        });
+      }
+
+      // Bouton Jouer dans l'overlay
+      const overlayPlayBtn = document.getElementById('overlayPlayBtn');
+      if (overlayPlayBtn) {
+        overlayPlayBtn.addEventListener('click', startGame);
+      }
+
+      // Bouton Jouer centré au démarrage
+      const startCenter = document.getElementById('startCenter');
+      const startPlayBtn = document.getElementById('startPlayBtn');
+      if (startPlayBtn) startPlayBtn.addEventListener('click', startGame);
+
+      // Bouton "Jouer"
+      const playBtn = document.getElementById('playBtn');
+      if (playBtn) playBtn.addEventListener('click', startGame);
+
+      // Pause / Resume
+      const pauseBtn = document.getElementById('pauseBtn');
+      const pauseState = document.getElementById('pauseState');
+      function setPaused(paused) {
+        running = !paused;
+        if (pauseBtn) pauseBtn.textContent = paused ? 'Reprendre' : 'Pause';
+        if (pauseState) pauseState.textContent = paused ? 'pause' : 'en cours';
+        // Gérer la musique
+        if (backgroundMusic) {
+          if (paused) {
+            backgroundMusic.pause();
+          } else {
+            backgroundMusic.play().catch(err => console.log('Autoplay bloqué:', err));
+          }
+        }
+      }
+      if (pauseBtn) pauseBtn.addEventListener('click', () => {
+        setPaused(running); // si en cours => pause, si en pause => reprend
+        if (!running) return; // en pause
+        // si on reprend, s'assurer que la boucle continue
+        try { requestAnimationFrame(loop); } catch {}
+        focusGame();
+      });
+
+      // Démarrer sur premier clic dans la zone de jeu
+      game.addEventListener('click', () => { if (!running || gameOver) startGame(); });
+      // Démarrer sur la première touche appuyée
+      let startedOnce = false;
+      document.addEventListener('keydown', () => {
+        if (!startedOnce) {
+          startedOnce = true;
+          if (!running || gameOver) startGame();
+        }
+      }, {capture:true});
+
+      // Sliders de saut (portée et hauteur)
+      const jumpRangeSlider = document.getElementById('jumpScale');
+      const jumpRangeValue = document.getElementById('jumpValue');
+      const jumpHeightSlider = document.getElementById('jumpHeight');
+      const jumpHeightValue = document.getElementById('jumpHeightValue');
+      const updateJumpUI = () => {
+        if (jumpRangeSlider && jumpRangeValue) {
+          jumpRangeScale = parseFloat(jumpRangeSlider.value) || 1.0;
+          jumpRangeValue.textContent = jumpRangeScale.toFixed(2) + '×';
+        }
+        if (jumpHeightSlider && jumpHeightValue) {
+          jumpHeightScale = parseFloat(jumpHeightSlider.value) || 1.0;
+          jumpHeightValue.textContent = jumpHeightScale.toFixed(2) + '×';
+        }
+      };
+      const setJumpHeightScale = (val) => {
+        jumpHeightScale = Math.max(JUMP_SCALE_MIN, Math.min(JUMP_SCALE_MAX, val));
+        if (jumpHeightSlider) jumpHeightSlider.value = jumpHeightScale.toFixed(2);
+        updateJumpUI();
+      };
+      if (jumpRangeSlider) jumpRangeSlider.addEventListener('input', updateJumpUI);
+      if (jumpHeightSlider) jumpHeightSlider.addEventListener('input', updateJumpUI);
+      updateJumpUI();
+
+      // Touches (restart + réglage +/- hauteur du saut + Super Saut + Pause)
+      window.addEventListener('keydown', (e) => {
+        if (gameOver && e.code === 'KeyR') { restart(); return; }
+        // Raccourcis clavier pour hauteur du saut
+        if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+          e.preventDefault();
+          setJumpHeightScale(jumpHeightScale + JUMP_SCALE_STEP);
+        }
+        if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+          e.preventDefault();
+          setJumpHeightScale(jumpHeightScale - JUMP_SCALE_STEP);
+        }
+        if (e.code === 'KeyS') {
+          nextJumpSuper = true; // armer manuellement, un seul saut
+        }
+        if (e.code === 'KeyP' && !gameOver) {
+          e.preventDefault();
+          setPaused(running);
+          if (!running) return; // mis en pause
+          try { requestAnimationFrame(loop); } catch {}
+        }
+      });
+
+    })();
+  </script>
+</body>
+</html>

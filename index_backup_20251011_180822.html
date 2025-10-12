@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jeu de la souris</title>
+  <link rel="preload" as="image" href="assets/img/souris.png" />
+  <link rel="preload" as="image" href="assets/img/chat.png" />
+  <link rel="preload" as="image" href="assets/img/aviondg.png" />
+  <link rel="preload" as="image" href="assets/img/aviongd.png" />
+  <link rel="preload" as="image" href="assets/img/cloud.svg" />
+  <link rel="preload" as="audio" href="assets/sounds/backgound.mp3" />
+  <style>
+    :root {
+      --game-width: min(90vw, 1200px);
+      --game-height: min(36vw, 480px);
+      --ground-height: min(5vw, 60px);
+    }
+    @media (max-width: 768px) {
+      :root { --game-width: 95vw; --game-height: 50vh; --ground-height: 8vw; }
+    }
+    html, body {
+      margin: 0; padding: 0; background: #dfe6f1;
+      font-family: system-ui, sans-serif; height: 100%;
+    }
+    body {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    #game {
+      position: relative;
+      width: var(--game-width);
+      height: var(--game-height);
+      background: linear-gradient(#b9dcff 0%, #d6ecff 70%, #fff 100%);
+      border: 2px solid #222;
+      overflow: hidden;
+      transition: background 2s ease;
+    }
+    #startCenter {
+      position: absolute; inset: 0; display: flex;
+      align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.2); z-index: 30;
+    }
+    #startCenter button {
+      font-size: 18px; padding: 8px 16px; border-radius: 8px;
+      background: #3a6ea5; color: #fff; cursor: pointer;
+    }
+    #hud {
+      position: absolute; top: 4px; left: 6px; padding: 4px 8px;
+      background: rgba(0,0,0,0.35); color: #fff; font-weight: 700;
+      border-radius: 6px; z-index: 20;
+    }
+    .sidewalk {
+      position: absolute; left: 0; right: 0; bottom: 0;
+      height: var(--ground-height);
+      background: linear-gradient(#b1b6be, #939aa4);
+      border-top: 2px solid #707782;
+    }
+    #souris, .chat {
+      position: absolute; bottom: var(--ground-height);
+      background-repeat: no-repeat; background-position: center;
+      background-size: contain;
+    }
+    #souris {
+      left: min(60px, 10vw); background-image: url("assets/img/souris.png");
+      width: min(48px, 6.5vw); height: min(48px, 6.5vw); z-index: 10;
+    }
+    .chat {
+      background-image: url("assets/img/chat.png");
+      width: min(72px, 9.75vw); height: min(72px, 9.75vw);
+      background-size: 100% 100%; z-index: 5;
+    }
+    .sky-object {
+      position: absolute; top: 8px;
+      width: min(96px, 12vw); height: min(36px, 4.5vw);
+      background-repeat: no-repeat; background-size: contain;
+      opacity: 0.9; pointer-events: none;
+    }
+    .barrier {
+      position: absolute;
+      bottom: var(--ground-height);
+      width: 10px;
+      height: 80px;
+      background: linear-gradient(to right, #8b7355 0%, #6d5a45 50%, #8b7355 100%);
+      border-left: 2px solid #5a4a38;
+      border-right: 2px solid #5a4a38;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.7;
+    }
+    .barrier::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -4px;
+      right: -4px;
+      height: 12px;
+      background: linear-gradient(to bottom, #a08060 0%, #8b7355 100%);
+      border-radius: 4px 4px 0 0;
+    }
+    .barrier-rail {
+      position: absolute;
+      bottom: calc(var(--ground-height) + 80px);
+      left: 0;
+      right: 0;
+      height: 8px;
+      background: linear-gradient(to bottom, #a08060 0%, #8b7355 50%, #6d5a45 100%);
+      border-top: 2px solid #5a4a38;
+      border-bottom: 2px solid #5a4a38;
+      pointer-events: none;
+      z-index: 2;
+      opacity: 0.7;
+    }
+    #hills-canvas {
+      position: absolute;
+      bottom: var(--ground-height);
+      left: 0;
+      width: 100%;
+      height: 200px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    #sun {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffeb3b 0%, #ffc107 50%, #ff9800 100%);
+      box-shadow: 0 0 40px rgba(255, 235, 59, 0.8), 0 0 80px rgba(255, 235, 59, 0.4);
+      pointer-events: none;
+      z-index: 3;
+      transition: all 1s ease;
+    }
+    #moon {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #f0f0f0 0%, #d0d0d0 50%, #a0a0a0 100%);
+      box-shadow: 0 0 30px rgba(200, 200, 220, 0.6), 0 0 60px rgba(200, 200, 220, 0.3),
+                  inset -10px -10px 20px rgba(0, 0, 0, 0.2);
+      pointer-events: none;
+      z-index: 3;
+      transition: all 1s ease;
+      opacity: 0;
+    }
+    .overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.45);
+      color: #fff; display: none; align-items: center;
+      justify-content: center; text-align: center;
+      z-index: 20;
+    }
+    .overlay.show { display: flex; }
+    .overlay .panel {
+      background: rgba(0,0,0,0.55); padding: 16px 20px;
+      border-radius: 8px;
+    }
+    #controls {
+      width: var(--game-width); margin: 8px auto 0;
+      background: rgba(255,255,255,0.7); border: 1px solid #b8c6d8;
+      border-radius: 6px; padding: 6px 10px; display: flex;
+      flex-wrap: wrap; gap: 8px; justify-content: center;
+      align-items: center;
+    }
+    #controls label {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 600; white-space: nowrap; font-size: 14px;
+    }
+    #controls input[type="range"] {
+      vertical-align: middle; min-width: 80px; max-width: 150px;
+    }
+    #controls button {
+      padding: 4px 8px; white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="startCenter"><button id="startPlayBtn">Jouer</button></div>
+    <div id="hud">Score: <span id="score">0</span> • Niveau: <span id="level">1</span> • Super: <span id="superStatus">—</span></div>
+    <div id="sun"></div>
+    <div id="moon"></div>
+    <canvas id="hills-canvas"></canvas>
+    <div class="barrier-rail"></div>
+    <div class="sidewalk"></div>
+    <div id="souris"></div>
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <h2>Game Over</h2>
+        <p>Appuyez sur R pour recommencer</p>
+      </div>
+    </div>
+  </div>
+  <audio id="backgroundMusic" loop>
+    <source src="assets/sounds/backgound.mp3" type="audio/mpeg">
+  </audio>
+  <div id="controls">
+    <label for="jumpScale">
+      Portée du saut
+      <input id="jumpScale" type="range" min="0.6" max="1.8" step="0.05" value="1.0" />
+      <span id="jumpValue">1.00×</span>
+    </label>
+    <label for="jumpHeight">
+      Hauteur du saut
+      <button id="jumpHeightMinus" type="button">−</button>
+      <input id="jumpHeight" type="range" min="0.6" max="2.5" step="0.05" value="1.8" />
+      <button id="jumpHeightPlus" type="button">+</button>
+      <span id="jumpHeightValue">1.80×</span>
+    </label>
+    <button id="superJumpBtn" type="button">Super Saut (S)</button>
+    <button id="playBtn">Jouer</button>
+    <button id="pauseBtn">Pause</button>
+  </div>
+  <script>
+(function() {
+  const game = document.getElementById('game');
+  const souris = document.getElementById('souris');
+  const overlay = document.getElementById('overlay');
+  const backgroundMusic = document.getElementById('backgroundMusic');
+  const scoreEl = document.getElementById('score');
+  
+  const WIDTH = parseInt(getComputedStyle(game).width) || 600;
+  const HEIGHT = parseInt(getComputedStyle(game).height) || 240;
+  const GROUND_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ground-height')) || 40;
+  
+  const GRAVITY = 1800;
+  const MOVE_ACCEL = 2200;
+  const MAX_SPEED_X = 240;
+  const JUMP_VELOCITY = 560;
+  const JUMP_RANGE_IMPULSE = 180;
+  const FRICTION = 2000;
+  const CAT_MIN_SPEED = 80;
+  const CAT_MAX_SPEED = 160;
+  const SCORE_RATE = 10;
+  const SKY_MIN_DELAY = 3;
+  const SKY_MEAN_EXTRA = 4;
+  
+  let jumpRangeScale = 1.0;
+  let jumpHeightScale = 1.8;
+  const JUMP_SCALE_STEP = 0.05;
+  
+  let running = false;
+  let gameOver = false;
+  
+  const input = { left: false, right: false, jump: false };
+  
+  const mouseSize = Math.min(48, WIDTH * 0.08);
+  const catSize = mouseSize * 1.5;
+  
+  souris.style.width = mouseSize + 'px';
+  souris.style.height = mouseSize + 'px';
+  
+  // Centrer la souris sur la route (au milieu de la zone ground)
+  const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
+  
+  const player = {
+    x: Math.min(60, WIDTH * 0.1), y: roadCenterOffset, vx: 0, vy: 0,
+    width: mouseSize, height: mouseSize, onGround: true
+  };
+  
+  const cats = [];
+  const barriers = [];
+  let score = 0;
+  let scoreAccum = 0;
+  let nextCatTime = 0;
+  let nextBarrierTime = 0;
+  let level = 1;
+  let nextLevelAt = 125;
+  let nextJumpSuper = false;
+  let dayNightProgress = 0; // Progression continue de 0 (jour) à 1 (nuit)
+  
+  // Canvas pour les collines
+  const hillsCanvas = document.getElementById('hills-canvas');
+  const hillsCtx = hillsCanvas.getContext('2d');
+  hillsCanvas.width = WIDTH;
+  hillsCanvas.height = 200;
+  
+  const sun = document.getElementById('sun');
+  const moon = document.getElementById('moon');
+  
+  // Fonction d'interpolation linéaire entre deux couleurs
+  function lerpColor(color1, color2, t) {
+    const r1 = parseInt(color1.slice(1, 3), 16);
+    const g1 = parseInt(color1.slice(3, 5), 16);
+    const b1 = parseInt(color1.slice(5, 7), 16);
+    const r2 = parseInt(color2.slice(1, 3), 16);
+    const g2 = parseInt(color2.slice(3, 5), 16);
+    const b2 = parseInt(color2.slice(5, 7), 16);
+    
+    const r = Math.round(r1 + (r2 - r1) * t);
+    const g = Math.round(g1 + (g2 - g1) * t);
+    const b = Math.round(b1 + (b2 - b1) * t);
+    
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
+  
+  // Fonction pour mettre à jour le cycle jour/nuit progressivement
+  function updateDayNight() {
+    // Progression de 0 (jour) à 1 (nuit) sur 300 points
+    const progress = Math.min(dayNightProgress, 1);
+    
+    // Couleurs du ciel
+    let skyTop, skyMid, skyBottom;
+    let hillTop, hillMid, hillBottom;
+    let riverR, riverG, riverB, riverA;
+    
+    if (progress < 0.33) { // Jour -> Fin d'après-midi
+      const t = progress / 0.33;
+      skyTop = lerpColor('#b9dcff', '#8fb4d9', t);
+      skyMid = lerpColor('#d6ecff', '#a8c5e0', t);
+      skyBottom = lerpColor('#ffffff', '#d0d8e0', t);
+      hillTop = lerpColor('#7cb342', '#6fa83a', t);
+      hillMid = lerpColor('#689f38', '#5a8f30', t);
+      hillBottom = lerpColor('#558b2f', '#4a7528', t);
+      riverR = 100 - 10 * t;
+      riverG = 150 - 20 * t;
+      riverB = 200 - 20 * t;
+      riverA = 0.6;
+    } else if (progress < 0.67) { // Fin d'après-midi -> Crépuscule
+      const t = (progress - 0.33) / 0.34;
+      skyTop = lerpColor('#8fb4d9', '#ff9a56', t);
+      skyMid = lerpColor('#a8c5e0', '#ff6b9d', t);
+      skyBottom = lerpColor('#d0d8e0', '#c94b4b', t);
+      hillTop = lerpColor('#6fa83a', '#5a8f2f', t);
+      hillMid = lerpColor('#5a8f30', '#4a7528', t);
+      hillBottom = lerpColor('#4a7528', '#3a5a20', t);
+      riverR = 90 + 60 * t;
+      riverG = 130 - 30 * t;
+      riverB = 180 - 30 * t;
+      riverA = 0.6 - 0.1 * t;
+    } else { // Crépuscule -> Nuit
+      const t = (progress - 0.67) / 0.33;
+      skyTop = lerpColor('#ff9a56', '#0a1128', t);
+      skyMid = lerpColor('#ff6b9d', '#1a2332', t);
+      skyBottom = lerpColor('#c94b4b', '#2a3a4a', t);
+      hillTop = lerpColor('#5a8f2f', '#2d4a2d', t);
+      hillMid = lerpColor('#4a7528', '#1f3a1f', t);
+      hillBottom = lerpColor('#3a5a20', '#152815', t);
+      riverR = 150 - 70 * t;
+      riverG = 100;
+      riverB = 150 - 10 * t;
+      riverA = 0.5;
+    }
+    
+    game.style.background = `linear-gradient(${skyTop} 0%, ${skyMid} 50%, ${skyBottom} 100%)`;
+    
+    // Mettre à jour la position et l'apparence du soleil
+    updateSunPosition(progress);
+  }
+  
+  function updateSunPosition(progress) {
+    if (!sun) return;
+    
+    // Position du soleil selon le cycle
+    let sunX, sunY, sunOpacity, sunColor, sunGlow;
+    
+    if (progress < 0.33) { // Jour - soleil haut dans le ciel
+      const t = progress / 0.33;
+      sunX = WIDTH * 0.75; // Position fixe à droite
+      sunY = 35 + 5 * t; // Bouge très peu verticalement
+      sunOpacity = 1;
+      sunColor = 'radial-gradient(circle, #ffeb3b 0%, #ffc107 50%, #ff9800 100%)';
+      sunGlow = '0 0 40px rgba(255, 235, 59, 0.8), 0 0 80px rgba(255, 235, 59, 0.4)';
+    } else if (progress < 0.67) { // Crépuscule - soleil descend
+      const t = (progress - 0.33) / 0.34;
+      sunX = WIDTH * 0.75; // Reste à la même position horizontale
+      sunY = 40 + 110 * t; // Descend vers l'horizon
+      sunOpacity = 1 - 0.3 * t;
+      // Soleil devient orange/rouge au coucher
+      sunColor = `radial-gradient(circle, #ff${Math.floor(235 - 100 * t).toString(16)}3b 0%, #ff${Math.floor(193 - 100 * t).toString(16)}07 50%, #ff${Math.floor(152 - 80 * t).toString(16)}00 100%)`;
+      sunGlow = `0 0 ${40 + 40 * t}px rgba(255, 100, 50, ${0.8 - 0.3 * t}), 0 0 ${80 + 40 * t}px rgba(255, 100, 50, ${0.4 - 0.2 * t})`;
+    } else { // Nuit - soleil caché
+      const t = (progress - 0.67) / 0.33;
+      sunX = WIDTH * 0.75;
+      sunY = 150 + 50 * t; // Sous l'horizon
+      sunOpacity = 0;
+      sunColor = 'radial-gradient(circle, #ff6b3b 0%, #ff3b07 50%, #ff2800 100%)';
+      sunGlow = '0 0 20px rgba(255, 50, 30, 0.3)';
+    }
+    
+    sun.style.left = sunX + 'px';
+    sun.style.top = sunY + 'px';
+    sun.style.opacity = sunOpacity;
+    sun.style.background = sunColor;
+    sun.style.boxShadow = sunGlow;
+    
+    // Mettre à jour la lune
+    updateMoonPosition(progress);
+  }
+  
+  function updateMoonPosition(progress) {
+    if (!moon) return;
+    
+    let moonX, moonY, moonOpacity;
+    
+    if (progress < 0.6) { // Jour et crépuscule - lune cachée (attend que le soleil se couche)
+      moonX = WIDTH * 0.1;
+      moonY = 200; // Sous l'horizon
+      moonOpacity = 0;
+    } else if (progress < 0.8) { // Début de nuit - lune se lève
+      const t = (progress - 0.6) / 0.2;
+      moonX = WIDTH * 0.75 + (WIDTH * 0.1) * t;
+      moonY = 180 - 140 * t; // Monte dans le ciel
+      moonOpacity = t;
+    } else { // Nuit complète - lune haute
+      const t = (progress - 0.8) / 0.2;
+      moonX = WIDTH * 0.85 - (WIDTH * 0.1) * t;
+      moonY = 40 - 10 * t;
+      moonOpacity = 1;
+    }
+    
+    moon.style.left = moonX + 'px';
+    moon.style.top = moonY + 'px';
+    moon.style.opacity = moonOpacity;
+  }
+  
+  // Génération de la sinusoïde irrégulière pour les collines
+  let hillsOffset = 0;
+  const hillsSpeed = 15; // Vitesse de défilement des collines (réduite)
+  
+  function generateHillPoints(offset) {
+    const points = [];
+    const segments = 20;
+    for (let i = 0; i <= segments; i++) {
+      const x = (i / segments) * (WIDTH + 200) - 100 + offset;
+      // Combinaison de plusieurs sinusoïdes pour un effet irrégulier
+      const y1 = Math.sin((x + offset) * 0.003) * 40;
+      const y2 = Math.sin((x + offset) * 0.007) * 30;
+      const y3 = Math.sin((x + offset) * 0.015) * 20;
+      const baseHeight = 90; // Plus bas pour des collines plus hautes
+      const y = baseHeight + y1 + y2 + y3;
+      points.push({ x: x - offset, y });
+    }
+    return points;
+  }
+  
+  function drawHills() {
+    hillsCtx.clearRect(0, 0, hillsCanvas.width, hillsCanvas.height);
+    
+    const points = generateHillPoints(hillsOffset);
+    
+    // Dessiner le paysage de collines
+    hillsCtx.beginPath();
+    hillsCtx.moveTo(-10, 200);
+    hillsCtx.lineTo(-10, points[0].y);
+    
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      if (i === 0) {
+        hillsCtx.lineTo(p.x, p.y);
+      } else {
+        const prev = points[i - 1];
+        const cp1x = prev.x + (p.x - prev.x) / 3;
+        const cp1y = prev.y;
+        const cp2x = prev.x + 2 * (p.x - prev.x) / 3;
+        const cp2y = p.y;
+        hillsCtx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p.x, p.y);
+      }
+    }
+    
+    hillsCtx.lineTo(WIDTH + 10, 200);
+    hillsCtx.closePath();
+    
+    // Remplissage avec dégradé vert (herbe) - couleurs adaptées au cycle jour/nuit
+    const progress = Math.min(dayNightProgress, 1);
+    let hillTop, hillMid, hillBottom;
+    let riverR, riverG, riverB, riverA;
+    
+    if (progress < 0.33) {
+      const t = progress / 0.33;
+      hillTop = lerpColor('#7cb342', '#6fa83a', t);
+      hillMid = lerpColor('#689f38', '#5a8f30', t);
+      hillBottom = lerpColor('#558b2f', '#4a7528', t);
+      riverR = 100 - 10 * t;
+      riverG = 150 - 20 * t;
+      riverB = 200 - 20 * t;
+      riverA = 0.6;
+    } else if (progress < 0.67) {
+      const t = (progress - 0.33) / 0.34;
+      hillTop = lerpColor('#6fa83a', '#5a8f2f', t);
+      hillMid = lerpColor('#5a8f30', '#4a7528', t);
+      hillBottom = lerpColor('#4a7528', '#3a5a20', t);
+      riverR = 90 + 60 * t;
+      riverG = 130 - 30 * t;
+      riverB = 180 - 30 * t;
+      riverA = 0.6 - 0.1 * t;
+    } else {
+      const t = (progress - 0.67) / 0.33;
+      hillTop = lerpColor('#5a8f2f', '#2d4a2d', t);
+      hillMid = lerpColor('#4a7528', '#1f3a1f', t);
+      hillBottom = lerpColor('#3a5a20', '#152815', t);
+      riverR = 150 - 70 * t;
+      riverG = 100;
+      riverB = 150 - 10 * t;
+      riverA = 0.5;
+    }
+    
+    let riverColor = `rgba(${Math.round(riverR)}, ${Math.round(riverG)}, ${Math.round(riverB)}, ${riverA})`;
+    
+    const gradient = hillsCtx.createLinearGradient(0, 80, 0, 200);
+    gradient.addColorStop(0, hillTop);
+    gradient.addColorStop(0.5, hillMid);
+    gradient.addColorStop(1, hillBottom);
+    hillsCtx.fillStyle = gradient;
+    hillsCtx.fill();
+    
+    // Ajouter une rivière/route avec couleur adaptée
+    hillsCtx.beginPath();
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      const riverY = p.y + 20 + Math.sin((p.x + hillsOffset) * 0.01) * 5;
+      if (i === 0) hillsCtx.moveTo(p.x, riverY);
+      else hillsCtx.lineTo(p.x, riverY);
+    }
+    
+    // La nuit, le ruisseau ressemble à une route grise
+    if (progress > 0.67) {
+      const nightProgress = (progress - 0.67) / 0.33;
+      // Transition de bleu/violet vers gris (route)
+      const roadR = Math.round(riverR + (120 - riverR) * nightProgress);
+      const roadG = Math.round(riverG + (120 - riverG) * nightProgress);
+      const roadB = Math.round(riverB + (130 - riverB) * nightProgress);
+      hillsCtx.strokeStyle = `rgba(${roadR}, ${roadG}, ${roadB}, ${riverA + 0.2 * nightProgress})`;
+      hillsCtx.lineWidth = 12 + 4 * nightProgress; // Plus large la nuit
+    } else {
+      hillsCtx.strokeStyle = riverColor;
+      hillsCtx.lineWidth = 8;
+    }
+    hillsCtx.stroke();
+  }
+  
+  function scheduleNextCat() {
+    const u = Math.random();
+    nextCatTime = Math.max(1.0, -Math.log(1 - u) * 4.5);
+  }
+  
+  function scheduleNextBarrier() {
+    nextBarrierTime = 0.15; // Intervalle fixe pour barrières régulières
+  }
+  
+  function spawnBarrier() {
+    const el = document.createElement('div');
+    el.className = 'barrier';
+    el.style.left = WIDTH + 'px';
+    game.appendChild(el);
+    
+    const speed = 180; // Vitesse fixe pour un défilement régulier
+    barriers.push({ el, x: WIDTH, vx: -speed, width: 10 });
+  }
+  
+  function spawnCat() {
+    const el = document.createElement('div');
+    el.className = 'chat';
+    el.style.left = WIDTH + 'px';
+    const roadCenterOffset = GROUND_HEIGHT / 2 - catSize / 2;
+    el.style.bottom = (GROUND_HEIGHT + roadCenterOffset) + 'px';
+    el.style.width = catSize + 'px';
+    el.style.height = catSize + 'px';
+    game.appendChild(el);
+    
+    const speed = CAT_MIN_SPEED + Math.random() * (CAT_MAX_SPEED - CAT_MIN_SPEED);
+    cats.push({ el, x: WIDTH, y: roadCenterOffset, vx: -speed, width: catSize, height: catSize });
+  }
+  
+  function onKeyDown(e) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') { input.left = true; e.preventDefault(); }
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') { input.right = true; e.preventDefault(); }
+    if (e.code === 'Space' || e.code === 'ArrowUp') { input.jump = true; e.preventDefault(); }
+    
+    // Touche S pour super saut
+    if (e.code === 'KeyS') {
+      nextJumpSuper = true;
+      const superStatus = document.getElementById('superStatus');
+      if (superStatus) superStatus.textContent = 'armé';
+    }
+    
+    // Touche P pour pause
+    if (e.code === 'KeyP' && !gameOver) {
+      e.preventDefault();
+      running = !running;
+      const pauseBtn = document.getElementById('pauseBtn');
+      if (pauseBtn) pauseBtn.textContent = running ? 'Pause' : 'Reprendre';
+      if (backgroundMusic) {
+        if (running) backgroundMusic.play().catch(() => {});
+        else backgroundMusic.pause();
+      }
+      if (running) requestAnimationFrame(loop);
+    }
+    
+    if (gameOver && e.code === 'KeyR') restart();
+  }
+  
+  function onKeyUp(e) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+    if (e.code === 'Space' || e.code === 'ArrowUp') input.jump = false;
+  }
+  
+  document.addEventListener('keydown', onKeyDown);
+  document.addEventListener('keyup', onKeyUp);
+  
+  let lastTime = performance.now();
+  scheduleNextCat();
+  scheduleNextBarrier();
+  
+  // Initialiser les barrières au démarrage
+  for (let i = 0; i < Math.ceil(WIDTH / 27); i++) {
+    const el = document.createElement('div');
+    el.className = 'barrier';
+    el.style.left = (i * 27) + 'px';
+    game.appendChild(el);
+    barriers.push({ el, x: i * 27, vx: -180, width: 10 });
+  }
+  
+  // Dessiner les collines au démarrage
+  drawHills();
+  updateSunPosition(0); // Initialiser le soleil et la lune
+  
+  function update(dt) {
+    if (!running) return;
+    
+    // Mettre à jour et dessiner les collines
+    hillsOffset += hillsSpeed * dt;
+    drawHills();
+    
+    if (input.left) player.vx -= MOVE_ACCEL * dt;
+    else if (input.right) player.vx += MOVE_ACCEL * dt;
+    else if (player.onGround) {
+      if (player.vx > 0) player.vx = Math.max(0, player.vx - FRICTION * dt);
+      else if (player.vx < 0) player.vx = Math.min(0, player.vx + FRICTION * dt);
+    }
+    player.vx = Math.max(-MAX_SPEED_X, Math.min(MAX_SPEED_X, player.vx));
+    
+    if (input.jump && player.onGround) {
+      const heightBoost = nextJumpSuper ? 1.8 : 1.0;
+      player.vy = JUMP_VELOCITY * jumpHeightScale * heightBoost;
+      
+      let dir = 0;
+      if (input.right && !input.left) dir = 1;
+      else if (input.left && !input.right) dir = -1;
+      else if (player.vx !== 0) dir = Math.sign(player.vx);
+      if (dir !== 0) {
+        const rangeBoost = nextJumpSuper ? 1.5 : 1.0;
+        player.vx += dir * JUMP_RANGE_IMPULSE * jumpRangeScale * rangeBoost;
+      }
+      
+      nextJumpSuper = false; // Consommer le super saut
+      player.onGround = false;
+    }
+    
+    if (!player.onGround) player.vy -= GRAVITY * dt;
+    
+    player.x += player.vx * dt;
+    player.x = Math.max(0, Math.min(WIDTH - player.width, player.x));
+    
+    player.y += player.vy * dt;
+    const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
+    if (player.y <= roadCenterOffset) {
+      player.y = roadCenterOffset;
+      player.vy = 0;
+      player.onGround = true;
+    }
+    
+    souris.style.left = Math.round(player.x) + 'px';
+    souris.style.bottom = (GROUND_HEIGHT + Math.round(player.y)) + 'px';
+    
+    scoreAccum += dt * SCORE_RATE;
+    const inc = Math.floor(scoreAccum);
+    if (inc > 0) {
+      score += inc;
+      scoreAccum -= inc;
+      if (scoreEl) scoreEl.textContent = String(score);
+      
+      // Gestion des niveaux
+      while (score >= nextLevelAt) {
+        level += 1;
+        const levelEl = document.getElementById('level');
+        if (levelEl) levelEl.textContent = String(level);
+        nextLevelAt += 125;
+      }
+      
+      // Cycle jour/nuit progressif et continu (300 points pour la nuit, puis 165 pour revenir au jour)
+      // Cycle complet = 465 points
+      const cyclePosition = score % 465;
+      let newProgress;
+      
+      if (cyclePosition <= 300) {
+        // Phase 1: Jour -> Nuit (0-300 points)
+        newProgress = cyclePosition / 300;
+      } else {
+        // Phase 2: Nuit -> Jour (300-465 points, soit 165 points)
+        const nightToDayProgress = (cyclePosition - 300) / 165;
+        newProgress = 1 - nightToDayProgress; // Revenir de 1 (nuit) à 0 (jour)
+      }
+      
+      if (Math.abs(newProgress - dayNightProgress) > 0.01) {
+        dayNightProgress = newProgress;
+        updateDayNight();
+      }
+    }
+    
+    // Afficher l'état du super saut
+    const superStatus = document.getElementById('superStatus');
+    if (superStatus) superStatus.textContent = nextJumpSuper ? 'armé' : '—';
+    
+    for (let i = cats.length - 1; i >= 0; i--) {
+      const c = cats[i];
+      c.x += c.vx * dt;
+      if (c.x < -c.width - 20) {
+        c.el.remove();
+        cats.splice(i, 1);
+        continue;
+      }
+      c.el.style.left = Math.round(c.x) + 'px';
+    }
+    
+    nextCatTime -= dt;
+    if (nextCatTime <= 0) {
+      spawnCat();
+      scheduleNextCat();
+    }
+    
+    // Barrières: déplacement + suppression hors écran
+    for (let i = barriers.length - 1; i >= 0; i--) {
+      const b = barriers[i];
+      b.x += b.vx * dt;
+      if (b.x < -b.width - 20) {
+        b.el.remove();
+        barriers.splice(i, 1);
+        continue;
+      }
+      b.el.style.left = Math.round(b.x) + 'px';
+    }
+    
+    nextBarrierTime -= dt;
+    if (nextBarrierTime <= 0) {
+      spawnBarrier();
+      scheduleNextBarrier();
+    }
+    
+    const a = {
+      x: player.x, y: HEIGHT - (GROUND_HEIGHT + player.y + player.height),
+      w: player.width, h: player.height
+    };
+    for (const c of cats) {
+      const b = {
+        x: c.x, y: HEIGHT - (GROUND_HEIGHT + c.y + c.height),
+        w: c.width, h: c.height
+      };
+      if (!(a.x + a.w < b.x || a.x > b.x + b.w || a.y + a.h < b.y || a.y > b.y + b.h)) {
+        endGame();
+        break;
+      }
+    }
+  }
+  
+  function loop(t) {
+    const dt = Math.min(0.033, (t - lastTime) / 1000);
+    lastTime = t;
+    if (!gameOver) {
+      update(dt);
+      requestAnimationFrame(loop);
+    }
+  }
+  
+  function endGame() {
+    gameOver = true;
+    running = false;
+    overlay.classList.add('show');
+    if (backgroundMusic) backgroundMusic.pause();
+  }
+  
+  function restart() {
+    for (const c of cats) c.el.remove();
+    cats.length = 0;
+    for (const b of barriers) b.el.remove();
+    barriers.length = 0;
+    
+    const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
+    player.x = Math.min(60, WIDTH * 0.1);
+    player.y = roadCenterOffset;
+    player.vx = 0;
+    player.vy = 0;
+    player.onGround = true;
+    hillsOffset = 0;
+    
+    score = 0;
+    scoreAccum = 0;
+    level = 1;
+    nextLevelAt = 125;
+    nextJumpSuper = false;
+    dayNightProgress = 0;
+    updateDayNight();
+    if (scoreEl) scoreEl.textContent = '0';
+    const levelEl = document.getElementById('level');
+    if (levelEl) levelEl.textContent = '1';
+    const superStatus = document.getElementById('superStatus');
+    if (superStatus) superStatus.textContent = '—';
+    
+    gameOver = false;
+    running = true;
+    overlay.classList.remove('show');
+    
+    if (backgroundMusic) {
+      backgroundMusic.currentTime = 0;
+      backgroundMusic.play().catch(err => console.log('Autoplay bloqué'));
+    }
+    
+    scheduleNextCat();
+    scheduleNextBarrier();
+    
+    // Réinitialiser les barrières
+    for (let i = 0; i < Math.ceil(WIDTH / 27); i++) {
+      const el = document.createElement('div');
+      el.className = 'barrier';
+      el.style.left = (i * 27) + 'px';
+      game.appendChild(el);
+      barriers.push({ el, x: i * 27, vx: -180, width: 10 });
+    }
+    
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+  
+  function startGame() {
+    const startCenter = document.getElementById('startCenter');
+    if (startCenter) startCenter.style.display = 'none';
+    overlay.classList.remove('show');
+    gameOver = false;
+    running = true;
+    
+    if (backgroundMusic) {
+      backgroundMusic.volume = 0.5;
+      backgroundMusic.play().catch(err => console.log('Autoplay bloqué'));
+    }
+    
+    lastTime = performance.now();
+    requestAnimationFrame(loop);
+  }
+  
+  const startPlayBtn = document.getElementById('startPlayBtn');
+  if (startPlayBtn) startPlayBtn.addEventListener('click', startGame);
+  
+  const playBtn = document.getElementById('playBtn');
+  if (playBtn) playBtn.addEventListener('click', startGame);
+  
+  const pauseBtn = document.getElementById('pauseBtn');
+  if (pauseBtn) pauseBtn.addEventListener('click', () => {
+    if (gameOver) return; // Ne pas permettre pause si game over
+    running = !running;
+    pauseBtn.textContent = running ? 'Pause' : 'Reprendre';
+    if (backgroundMusic) {
+      if (running) backgroundMusic.play().catch(() => {});
+      else backgroundMusic.pause();
+    }
+    if (running) requestAnimationFrame(loop);
+  });
+  
+  const superJumpBtn = document.getElementById('superJumpBtn');
+  if (superJumpBtn) superJumpBtn.addEventListener('click', () => {
+    nextJumpSuper = true;
+    const superStatus = document.getElementById('superStatus');
+    if (superStatus) superStatus.textContent = 'armé';
+  });
+  
+  // Réglages de saut
+  const jumpScaleInput = document.getElementById('jumpScale');
+  const jumpValueSpan = document.getElementById('jumpValue');
+  if (jumpScaleInput) {
+    jumpScaleInput.addEventListener('input', () => {
+      jumpRangeScale = parseFloat(jumpScaleInput.value);
+      if (jumpValueSpan) jumpValueSpan.textContent = jumpRangeScale.toFixed(2) + '×';
+    });
+  }
+  
+  const jumpHeightInput = document.getElementById('jumpHeight');
+  const jumpHeightValueSpan = document.getElementById('jumpHeightValue');
+  
+  function updateJumpHeight(value) {
+    jumpHeightScale = Math.max(0.6, Math.min(2.5, value));
+    if (jumpHeightInput) jumpHeightInput.value = jumpHeightScale;
+    if (jumpHeightValueSpan) jumpHeightValueSpan.textContent = jumpHeightScale.toFixed(2) + '×';
+  }
+  
+  if (jumpHeightInput) {
+    jumpHeightInput.addEventListener('input', () => {
+      updateJumpHeight(parseFloat(jumpHeightInput.value));
+    });
+  }
+  
+  const jumpHeightPlus = document.getElementById('jumpHeightPlus');
+  if (jumpHeightPlus) {
+    jumpHeightPlus.addEventListener('click', () => {
+      updateJumpHeight(jumpHeightScale + JUMP_SCALE_STEP);
+    });
+  }
+  
+  const jumpHeightMinus = document.getElementById('jumpHeightMinus');
+  if (jumpHeightMinus) {
+    jumpHeightMinus.addEventListener('click', () => {
+      updateJumpHeight(jumpHeightScale - JUMP_SCALE_STEP);
+    });
+  }
+  
+  // Raccourcis clavier pour ajuster la hauteur
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Equal' || e.code === 'NumpadAdd') {
+      e.preventDefault();
+      updateJumpHeight(jumpHeightScale + JUMP_SCALE_STEP);
+    }
+    if (e.code === 'Minus' || e.code === 'NumpadSubtract') {
+      e.preventDefault();
+      updateJumpHeight(jumpHeightScale - JUMP_SCALE_STEP);
+    }
+  });
+  
+  // Objets du ciel (avions et nuages)
+  function spawnSkyObject() {
+    const el = document.createElement('div');
+    el.className = 'sky-object';
+    
+    // Plus d'avions pendant le crépuscule (ciel rose)
+    const progress = dayNightProgress;
+    let planeChance = 0.35; // Chance de base
+    if (progress >= 0.33 && progress <= 0.67) {
+      // Pendant le crépuscule, augmenter la chance d'avions
+      planeChance = 0.65; // Presque 2x plus d'avions
+    }
+    
+    const isPlane = Math.random() < planeChance;
+    const directionRight = Math.random() < 0.5;
+    
+    if (isPlane) {
+      const img = directionRight ? 'assets/img/aviongd.png' : 'assets/img/aviondg.png';
+      el.style.backgroundImage = `url(${img})`;
+    } else {
+      el.style.backgroundImage = 'url(assets/img/cloud.svg)';
+    }
+    
+    const top = 8 + Math.random() * (HEIGHT * 0.27);
+    el.style.top = top + 'px';
+    
+    const w = isPlane ? Math.min(96, WIDTH * 0.16) : Math.min(72, WIDTH * 0.12);
+    const h = isPlane ? Math.min(36, WIDTH * 0.06) : Math.min(32, WIDTH * 0.053);
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+    
+    const startX = directionRight ? -w - 20 : WIDTH + 20;
+    el.style.left = startX + 'px';
+    game.appendChild(el);
+    
+    const speed = isPlane ? (90 + Math.random() * 70) : (40 + Math.random() * 30);
+    const dir = directionRight ? 1 : -1;
+    
+    let alive = true;
+    let lastT = performance.now();
+    function skyLoop(t) {
+      if (!alive) return;
+      const dt = (t - lastT) / 1000;
+      lastT = t;
+      
+      const x = parseFloat(el.style.left);
+      const nx = x + dir * speed * dt;
+      el.style.left = nx + 'px';
+      
+      if (directionRight ? nx > WIDTH + 100 : nx < -w - 100) {
+        alive = false;
+        el.remove();
+        return;
+      }
+      requestAnimationFrame(skyLoop);
+    }
+    requestAnimationFrame(skyLoop);
+    
+    // Délai réduit pendant le crépuscule pour plus d'avions
+    let minDelay = SKY_MIN_DELAY;
+    let meanExtra = SKY_MEAN_EXTRA;
+    
+    if (progress >= 0.33 && progress <= 0.67) {
+      // Pendant le crépuscule, réduire les délais
+      minDelay = 1.5; // Plus rapide
+      meanExtra = 2; // Moins de variation
+    }
+    
+    const u = Math.random();
+    const delay = minDelay + (-Math.log(1 - u) * meanExtra);
+    setTimeout(spawnSkyObject, delay * 1000);
+  }
+  
+  setTimeout(spawnSkyObject, 1500 + Math.random() * 1200);
+})();
+  </script>
+</body>
+</html>
