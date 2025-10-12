@@ -358,6 +358,32 @@
   function isMobileEnv() {
     return (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) || window.innerWidth <= 1024;
   }
+  
+  function applyResponsiveLayout() {
+    const portrait = window.innerHeight >= window.innerWidth;
+    // Compute target sizes
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const gameH = Math.round(vh * (portrait ? 0.55 : 0.60));
+    const groundH = Math.round(vh * (portrait ? 0.06 : 0.10));
+    // Apply sizes directly to #game to avoid stale media-query caches
+    game.style.width = vw + 'px';
+    game.style.height = gameH + 'px';
+    // Sync CSS var for ground height (used by some styles)
+    document.documentElement.style.setProperty('--ground-height', groundH + 'px');
+    // Ensure hills canvas adapts
+    hillsCanvas.width = vw;
+    // Keep a stable hills canvas height appropriate for both orientations
+    hillsCanvas.height = Math.max(140, Math.min(220, Math.round(gameH * 0.6)));
+    // Ensure mobile actions visibility in both orientations (unless settings open)
+    const mobileActions = document.getElementById('mobile-actions');
+    const touchControls = document.getElementById('touch-controls');
+    const settingsOpen = document.getElementById('mobile-settings')?.style.display === 'block';
+    if (!settingsOpen) {
+      if (mobileActions) mobileActions.style.display = 'flex';
+      if (touchControls) touchControls.style.display = 'flex';
+    }
+  }
   const GROUND_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ground-height')) || 40;
   
   const GRAVITY = 1800;
@@ -411,6 +437,8 @@
   const hillsCtx = hillsCanvas.getContext('2d');
   hillsCanvas.width = getGameWidth();
   hillsCanvas.height = 200;
+  // Apply responsive sizing immediately
+  applyResponsiveLayout();
   
   const sun = document.getElementById('sun');
   const moon = document.getElementById('moon');
@@ -597,12 +625,13 @@
     hillsCtx.clearRect(0, 0, hillsCanvas.width, hillsCanvas.height);
     
     const cw = hillsCanvas.width;
+    const ch = hillsCanvas.height;
     const isMobile = window.innerWidth <= 768;
     const points = generateHillPoints(hillsOffset, cw, isMobile);
     
     // Dessiner le paysage de collines (plein écran)
     hillsCtx.beginPath();
-    hillsCtx.moveTo(0, 200);
+    hillsCtx.moveTo(0, ch);
     hillsCtx.lineTo(0, points[0].y);
     
     for (let i = 0; i < points.length; i++) {
@@ -619,7 +648,7 @@
       }
     }
     
-    hillsCtx.lineTo(cw, 200);
+    hillsCtx.lineTo(cw, ch);
     hillsCtx.closePath();
     
     // Remplissage avec dégradé vert (herbe) - couleurs adaptées au cycle jour/nuit
