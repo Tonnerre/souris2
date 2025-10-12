@@ -385,11 +385,33 @@
     // Ensure mobile actions visibility in both orientations (unless settings open)
     const mobileActions = document.getElementById('mobile-actions');
     const touchControls = document.getElementById('touch-controls');
+    const signatureEl = document.getElementById('signature');
     const settingsOpen = document.getElementById('mobile-settings')?.style.display === 'block';
     if (!settingsOpen) {
       const showMobile = isMobileEnv();
       if (mobileActions) mobileActions.style.display = showMobile ? 'flex' : 'none';
       if (touchControls) touchControls.style.display = showMobile ? 'flex' : 'none';
+    }
+
+    // Signature handling: on mobile portrait, abbreviate and ensure it cannot create a translucent block
+    if (signatureEl) {
+      const onMobilePortrait = isMobileEnv() && portrait;
+      if (onMobilePortrait) {
+        signatureEl.textContent = 'E. Munoz-Motsou';
+        signatureEl.style.background = 'none';
+        signatureEl.style.boxShadow = 'none';
+        signatureEl.style.backdropFilter = 'none';
+        signatureEl.style.display = 'inline-block';
+        signatureEl.style.pointerEvents = 'none';
+        signatureEl.style.width = 'auto';
+        signatureEl.style.maxWidth = '60vw';
+        signatureEl.style.top = '4px';
+        signatureEl.style.right = '8px';
+      } else {
+        signatureEl.textContent = '© 2025 - Esteban Munoz Motsou (8 ans)';
+        // Keep transparent background globally to avoid any overlay effect
+        signatureEl.style.background = 'none';
+      }
     }
   }
   const GROUND_HEIGHT = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ground-height')) || 40;
