@@ -18,27 +18,26 @@
       --ground-height: min(5vw, 60px);
     }
     @media (max-width: 768px) {
-      :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vw; }
-      #hud { font-size: 12px; top: 4px; left: 4px; }
-      #signature { font-size: 9px; bottom: 4px; right: 4px; }
+      :root { --game-width: 100vw; --game-height: 70vh; --ground-height: 8vh; }
+      body { padding: 0; justify-content: flex-start; }
+      #game { margin: 0; }
+      #hud { font-size: 11px; top: 2px; left: 4px; padding: 3px 6px; }
+      #signature { 
+        font-size: 8px; 
+        bottom: 2px; 
+        right: 4px;
+        padding: 2px 4px;
+      }
       #controls { 
-        flex-direction: column; 
-        padding: 8px;
-        font-size: 12px;
+        display: none !important;
       }
-      #controls label {
-        margin: 4px 0;
-        flex-direction: column;
-        align-items: flex-start;
+      #touch-controls {
+        bottom: 5px;
       }
-      #controls input[type="range"] {
-        width: 100%;
-        margin: 4px 0;
-      }
-      #controls button {
-        width: 100%;
-        margin: 4px 0;
-        padding: 8px;
+      #touch-controls button {
+        width: 65px;
+        height: 65px;
+        font-size: 26px;
       }
     }
     html, body {
@@ -201,13 +200,15 @@
     #touch-controls {
       display: none;
       position: absolute;
-      bottom: 10px;
+      bottom: 70px;
       left: 0;
       right: 0;
       z-index: 25;
-      justify-content: space-around;
-      padding: 0 10px;
+      justify-content: space-between;
+      padding: 0 15px;
       pointer-events: none;
+      max-width: 400px;
+      margin: 0 auto;
     }
     #touch-controls button {
       pointer-events: auto;
@@ -230,7 +231,10 @@
       transform: scale(0.9);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
     }
-    @media (max-width: 768px) and (pointer: coarse) {
+    @media (hover: none) and (pointer: coarse) {
+      #touch-controls { display: flex; }
+    }
+    @media (max-width: 768px) {
       #touch-controls { display: flex; }
     }
     #controls label {
@@ -260,6 +264,13 @@
       <button id="touch-left" type="button">←</button>
       <button id="touch-jump" type="button">↑</button>
       <button id="touch-right" type="button">→</button>
+    </div>
+    <button id="mobile-settings-btn" style="display: none; position: absolute; top: 40px; right: 8px; z-index: 30; background: rgba(0,0,0,0.5); color: white; border: 2px solid white; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer;">⚙️</button>
+    <div id="mobile-settings" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 40; padding: 20px; overflow-y: auto;">
+      <button id="close-settings" style="position: absolute; top: 10px; right: 10px; background: #f44336; color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 24px; cursor: pointer;">×</button>
+      <h2 style="color: white; text-align: center; margin-top: 40px;">Réglages</h2>
+      <div id="mobile-controls-container" style="color: white; padding: 20px;">
+      </div>
     </div>
     <div id="overlay" class="overlay">
       <div class="panel">
@@ -1084,6 +1095,52 @@
         player.vx += (input.right ? 1 : (input.left ? -1 : 0)) * JUMP_RANGE_IMPULSE * jumpRangeScale;
         player.onGround = false;
       }
+    });
+  }
+  
+  // Gestion des réglages mobiles
+  const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
+  const mobileSettings = document.getElementById('mobile-settings');
+  const closeSettings = document.getElementById('close-settings');
+  const mobileControlsContainer = document.getElementById('mobile-controls-container');
+  
+  // Afficher le bouton réglages sur mobile
+  if (window.innerWidth <= 768) {
+    if (mobileSettingsBtn) mobileSettingsBtn.style.display = 'block';
+  }
+  
+  // Copier les contrôles dans le panneau mobile
+  if (mobileControlsContainer) {
+    const controls = document.getElementById('controls');
+    if (controls) {
+      mobileControlsContainer.innerHTML = controls.innerHTML;
+      // Réattacher les événements aux nouveaux éléments
+      const mobileJumpScale = mobileControlsContainer.querySelector('#jumpScale');
+      const mobileJumpHeight = mobileControlsContainer.querySelector('#jumpHeight');
+      if (mobileJumpScale) {
+        mobileJumpScale.addEventListener('input', () => {
+          updateJumpScale(parseFloat(mobileJumpScale.value));
+          if (jumpScaleInput) jumpScaleInput.value = mobileJumpScale.value;
+        });
+      }
+      if (mobileJumpHeight) {
+        mobileJumpHeight.addEventListener('input', () => {
+          updateJumpHeight(parseFloat(mobileJumpHeight.value));
+          if (jumpHeightInput) jumpHeightInput.value = mobileJumpHeight.value;
+        });
+      }
+    }
+  }
+  
+  if (mobileSettingsBtn) {
+    mobileSettingsBtn.addEventListener('click', () => {
+      if (mobileSettings) mobileSettings.style.display = 'block';
+    });
+  }
+  
+  if (closeSettings) {
+    closeSettings.addEventListener('click', () => {
+      if (mobileSettings) mobileSettings.style.display = 'none';
     });
   }
   
