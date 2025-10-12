@@ -182,6 +182,11 @@
       transition: all 1s ease;
       opacity: 0;
     }
+    /* Mobile: sun/moon smaller */
+    @media (max-width: 768px) {
+      #sun { width: 56px; height: 56px; }
+      #moon { width: 50px; height: 50px; }
+    }
     .overlay {
       position: absolute; inset: 0; background: rgba(0,0,0,0.45);
       color: #fff; display: none; align-items: center;
@@ -1121,42 +1126,45 @@
   }
   
   if (touchJump) {
-    touchJump.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Si le jeu n'a pas démarré, le démarrer
+    const startGameIfNeeded = () => {
       if (!running && !gameOver) {
         running = true;
         const startCenter = document.getElementById('startCenter');
         if (startCenter) startCenter.style.display = 'none';
         requestAnimationFrame(loop);
       }
-      
-      // Effectuer le saut
-      if (running && !gameOver) {
-        if (player.onGround) {
-          player.vy = -JUMP_VELOCITY * jumpHeightScale;
-          if (nextJumpSuper) {
-            player.vy *= 1.8;
-            nextJumpSuper = false;
-            const superStatus = document.getElementById('superStatus');
-            if (superStatus) superStatus.textContent = '—';
-          }
-          player.vx += (input.right ? 1 : (input.left ? -1 : 0)) * JUMP_RANGE_IMPULSE * jumpRangeScale;
-          player.onGround = false;
-        }
-      }
-    });
-    
-    // Alternative : utiliser aussi touchend pour plus de réactivité
+    };
+    // Touch events (non-passive) + visual feedback
+    touchJump.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      touchJump.classList.add('pressed');
+      startGameIfNeeded();
+      input.jump = true;
+    }, { passive: false });
     touchJump.addEventListener('touchend', (e) => {
       e.preventDefault();
       e.stopPropagation();
+      touchJump.classList.remove('pressed');
+      input.jump = false;
+    }, { passive: false });
+    // Click fallback (short pulse like keyboard)
+    touchJump.addEventListener('click', (e) => {
+      e.preventDefault();
+      startGameIfNeeded();
+      touchJump.classList.add('pressed');
+      input.jump = true;
+      setTimeout(() => { input.jump = false; touchJump.classList.remove('pressed'); }, 80);
     });
+    touchJump.addEventListener('mousedown', () => touchJump.classList.add('pressed'));
+    touchJump.addEventListener('mouseup', () => touchJump.classList.remove('pressed'));
+    touchJump.addEventListener('input', (e) => {
+      if (e.inputType === 'touch') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }, { passive: false });
   }
-  
-  // Gestion des réglages mobiles
   const mobileSettingsBtn = document.getElementById('mobile-settings-btn');
   const mobileSettings = document.getElementById('mobile-settings');
   const closeSettings = document.getElementById('close-settings');
