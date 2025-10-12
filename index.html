@@ -34,7 +34,7 @@
         text-align: left;
       }
       /* Smaller arrows in portrait */
-      #touch-controls button { width: 28px; height: 28px; font-size: 12px; }
+      #touch-controls button { width: 26px; height: 26px; font-size: 12px; }
       /* Super saut bouton en portrait */
       #touch-super-jump {
         transition: all 0.1s;
@@ -48,9 +48,9 @@
       :root { --game-width: 100vw; --game-height: 60vh; --ground-height: 10vh; }
       .barrier { height: 36px; }
       #hills-canvas { height: 140px; }
-      /* Leave room under the game for arrows */
-      body { padding-bottom: 40px; }
-      #touch-controls button { width: 24px; height: 24px; font-size: 12px; }
+      /* Laisser moins de marge: flèches plus petites */
+      body { padding-bottom: 24px; }
+      #touch-controls button { width: 22px; height: 22px; font-size: 12px; }
       #touch-super-jump {
         display: block;
         position: absolute;
@@ -401,7 +401,8 @@
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     // Taller game area in both orientations to reveal feet and road bottom
-    const gameH = Math.round(vh * (portrait ? 0.72 : 0.78));
+    // Réduction pour éviter chevauchements avec signature/PAUSE/REFRESH et flèches
+    const gameH = Math.round(vh * (portrait ? 0.60 : 0.55));
     const groundH = Math.round(vh * (portrait ? 0.06 : 0.10));
     // Apply sizes directly to #game and update CSS vars
     game.style.width = vw + 'px';
