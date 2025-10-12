@@ -43,6 +43,15 @@
         transform: scale(0.7);
       }
     }
+    /* Landscape orientation on mobile/tablet: ensure barriers fully visible, controls hidden by default */
+    @media (max-width: 1024px) and (orientation: landscape) {
+      :root { --game-width: 100vw; --game-height: 65vh; --ground-height: 6vh; }
+      #controls { display: none !important; }
+      .barrier { height: 80px; }
+      .barrier-rail { bottom: calc(var(--ground-height) + 80px); }
+      #hills-canvas { height: 140px; }
+      #touch-controls { bottom: 10px; }
+    }
     html, body {
       margin: 0; padding: 0; background: #dfe6f1;
       font-family: system-ui, sans-serif; height: 100%;
@@ -562,8 +571,8 @@
     const startX = -leftMargin;
     const endX = canvasWidth + rightMargin;
     const span = endX - startX;
-    const segments = Math.max(40, Math.ceil(span / 25));
-    const scroll = offset % 200; // small wrap to avoid gaps while using margins
+    const segments = Math.max(60, Math.ceil(span / 15));
+    const scroll = offset % canvasWidth; // wrap exactly to canvas width for seamless scrolling
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
       const baseX = startX + t * span;
