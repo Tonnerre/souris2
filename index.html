@@ -235,12 +235,22 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
       border-color: #00ff00;
     }
+    #touch-controls button.pressed {
+      background: rgba(120, 120, 255, 0.95) !important;
+      border-color: #00ff88 !important;
+      transform: scale(0.92);
+    }
     #touch-jump {
       background: rgba(60, 60, 150, 0.85) !important;
     }
     #touch-jump:active {
       background: rgba(100, 100, 255, 0.95) !important;
     }
+    /* Boutons Pause/Restart mobiles */
+    #mobile-actions { display: none; position: fixed; top: 8px; right: 8px; z-index: 50; gap: 6px; }
+    #mobile-actions button { pointer-events: auto; padding: 6px 10px; font-size: 14px; border-radius: 6px; border: 2px solid rgba(255,255,255,0.9); color: #fff; background: rgba(0,0,0,0.5); box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+    #mobile-actions button:active { transform: scale(0.95); }
+    @media (max-width: 768px) { #mobile-actions { display: flex; } }
     @media (hover: none) and (pointer: coarse) {
       #touch-controls { display: flex; }
     }
@@ -274,6 +284,10 @@
       <button id="touch-left" type="button">←</button>
       <button id="touch-jump" type="button">↑</button>
       <button id="touch-right" type="button">→</button>
+    </div>
+    <div id="mobile-actions">
+      <button id="mobile-pause" type="button">⏸️</button>
+      <button id="mobile-restart" type="button">⟳</button>
     </div>
     <button id="mobile-settings-btn" style="display: none; position: absolute; top: 40px; right: 8px; z-index: 30; background: rgba(0,0,0,0.5); color: white; border: 2px solid white; border-radius: 50%; width: 40px; height: 40px; font-size: 20px; cursor: pointer;">⚙️</button>
     <div id="mobile-settings" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 40; padding: 20px; overflow-y: auto;">
@@ -532,16 +546,17 @@
   let hillsOffset = 0;
   const hillsSpeed = 15; // Vitesse de défilement des collines (réduite)
   
-  function generateHillPoints(offset) {
+  function generateHillPoints(offset, canvasWidth, isMobile) {
     const points = [];
     const segments = 20;
     for (let i = 0; i <= segments; i++) {
-      const x = (i / segments) * (WIDTH + 200) - 100 + offset;
+      const x = (i / segments) * (canvasWidth + 200) - 100 + offset;
       // Combinaison de plusieurs sinusoïdes pour un effet irrégulier
-      const y1 = Math.sin((x + offset) * 0.003) * 40;
-      const y2 = Math.sin((x + offset) * 0.007) * 30;
-      const y3 = Math.sin((x + offset) * 0.015) * 20;
-      const baseHeight = 90; // Plus bas pour des collines plus hautes
+      const ampFactor = isMobile ? 0.65 : 1.0;
+      const y1 = Math.sin((x + offset) * 0.003) * 40 * ampFactor;
+      const y2 = Math.sin((x + offset) * 0.007) * 30 * ampFactor;
+      const y3 = Math.sin((x + offset) * 0.015) * 20 * ampFactor;
+      const baseHeight = isMobile ? 70 : 90; // Mobile: paysage plus "lointain"
       const y = baseHeight + y1 + y2 + y3;
       points.push({ x: x - offset, y });
     }
@@ -549,9 +564,16 @@
   }
   
   function drawHills() {
+    // Ensure the hills canvas matches the current game width (responsive)
+    const desiredWidth = game.clientWidth || WIDTH;
+    if (hillsCanvas.width !== desiredWidth) {
+      hillsCanvas.width = desiredWidth;
+    }
     hillsCtx.clearRect(0, 0, hillsCanvas.width, hillsCanvas.height);
     
-    const points = generateHillPoints(hillsOffset);
+    const cw = hillsCanvas.width;
+    const isMobile = window.innerWidth <= 768;
+    const points = generateHillPoints(hillsOffset, cw, isMobile);
     
     // Dessiner le paysage de collines
     hillsCtx.beginPath();
@@ -572,7 +594,7 @@
       }
     }
     
-    hillsCtx.lineTo(WIDTH + 10, 200);
+    hillsCtx.lineTo(cw + 10, 200);
     hillsCtx.closePath();
     
     // Remplissage avec dégradé vert (herbe) - couleurs adaptées au cycle jour/nuit
@@ -737,6 +759,11 @@
   // Dessiner les collines au démarrage
   drawHills();
   updateSunPosition(0); // Initialiser le soleil et la lune
+
+  // Adapter le rendu lors des changements de taille (paysage plein écran sans bordures)
+  window.addEventListener('resize', () => {
+    drawHills();
+  });
   
   function update(dt) {
     if (!running) return;
