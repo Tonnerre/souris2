@@ -15,12 +15,19 @@
   <style>
     :root {
       --game-width: min(90vw, 1200px);
-      --game-height: min(36vw, 480px);
+      /* Réduire la hauteur par défaut sur PC pour libérer de l'espace sous le jeu */
+      --game-height: min(32vw, 420px);
       --ground-height: min(5vw, 60px);
+    }
+    /* Espace bas dédié aux contrôles sur PC (pointeur fin) */
+    @media (hover: hover) and (pointer: fine) {
+      body { padding: 16px 0 140px 0; justify-content: flex-start; }
+      #game { margin-bottom: 12px; }
     }
     @media (max-width: 768px) {
       :root { --game-width: 100vw; --game-height: 55vh; --ground-height: 6vh; }
-      body { padding: 8px 0 48px 0; justify-content: flex-start; overflow: hidden; }
+      /* Plus d'espace blanc en bas pour les boutons tactiles (flèches + S) */
+      body { padding: 8px 0 128px 0; justify-content: flex-start; overflow: hidden; }
       #game { margin: 0; }
       #hud { font-size: 11px; top: 24px; left: 4px; padding: 3px 6px; display: flex; flex-direction: column; gap: 2px; }
       /* Ne pas forcer ici: gestion via media query coarse-pointer plus bas */
@@ -38,6 +45,10 @@
       }
       /* Smaller arrows in portrait */
       #touch-controls button { width: 44px; height: 44px; font-size: 20px; }
+      /* Boutons tactiles en positions fixes pour éviter tout chevauchement */
+      #touch-left { position: fixed; left: 14px; bottom: 14px; z-index: 56; }
+      #touch-right { position: fixed; right: 88px; bottom: 14px; z-index: 56; }
+      #touch-jump { position: fixed; right: 14px; bottom: 14px; z-index: 56; }
       /* Super saut portrait: visible et centré en bas */
       #touch-super-jump { display: block; position: fixed; bottom: 56px; left: 50%; transform: translateX(-50%); width: 56px; height: 56px; border-radius: 50%; background: rgba(60, 60, 150, 0.85); border: 4px solid rgba(255, 255, 255, 0.95); color: white; font-size: 22px; font-weight: bold; cursor: pointer; touch-action: none; user-select: none; box-shadow: 0 6px 12px rgba(0, 0, 0, 0.7); }
       /* Super saut bouton en portrait */
@@ -56,12 +67,17 @@
       .barrier { height: 36px; }
       #hills-canvas { height: 140px; }
       /* Laisser moins de marge: flèches plus petites */
-      body { padding-bottom: 28px; }
+      /* Espace pour laisser respirer les contrôles en bas */
+      body { padding-bottom: 88px; }
       #touch-controls button { width: 36px; height: 36px; font-size: 18px; }
+      /* Positions fixes pour éviter chevauchements en paysage */
+      #touch-left { position: fixed; left: 12px; bottom: 12px; z-index: 56; }
+      #touch-right { position: fixed; right: 76px; bottom: 12px; z-index: 56; }
+      #touch-jump { position: fixed; right: 12px; bottom: 12px; z-index: 56; }
       #touch-super-jump {
         display: block;
         position: fixed;
-        bottom: 12px;
+        bottom: 20px;
         left: 50%;
         transform: translateX(-50%);
         width: 52px;
