@@ -28,9 +28,7 @@
         right: 4px !important;
         bottom: auto !important;
         padding: 2px 4px;
-        background: none !important;
-        box-shadow: none !important;
-        backdrop-filter: none !important;
+        background: rgba(0,0,0,0.35) !important;
         display: inline-block; width: auto; max-width: 60vw;
       }
       #controls { 
@@ -93,12 +91,10 @@
     #hud > div { line-height: 1.1; }
     #signature {
       position: fixed; top: 4px; right: 8px; bottom: auto !important;
-      color: rgba(255, 255, 255, 0.95);
-      background: none !important;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
+      color: #fff;
+      background: rgba(0,0,0,0.35) !important; /* petit fond uniquement sous le texte */
       padding: 4px 8px; border-radius: 6px; font-size: 12px;
-      z-index: 25; text-align: right; pointer-events: none; white-space: nowrap;
+      z-index: 60; text-align: right; pointer-events: none; white-space: nowrap;
       display: inline-block; width: auto; max-width: 60vw;
     }
     .sidewalk {
