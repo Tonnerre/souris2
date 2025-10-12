@@ -230,9 +230,16 @@
       transition: all 0.1s;
     }
     #touch-controls button:active {
-      background: rgba(100, 100, 100, 0.9);
+      background: rgba(150, 150, 255, 0.9);
       transform: scale(0.9);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+      border-color: #00ff00;
+    }
+    #touch-jump {
+      background: rgba(60, 60, 150, 0.85) !important;
+    }
+    #touch-jump:active {
+      background: rgba(100, 100, 255, 0.95) !important;
     }
     @media (hover: none) and (pointer: coarse) {
       #touch-controls { display: flex; }
@@ -1089,15 +1096,36 @@
   if (touchJump) {
     touchJump.addEventListener('touchstart', (e) => {
       e.preventDefault();
-      if (player.onGround && running && !gameOver) {
-        player.vy = -JUMP_VELOCITY * jumpHeightScale;
-        if (nextJumpSuper) {
-          player.vy *= 1.8;
-          nextJumpSuper = false;
-        }
-        player.vx += (input.right ? 1 : (input.left ? -1 : 0)) * JUMP_RANGE_IMPULSE * jumpRangeScale;
-        player.onGround = false;
+      e.stopPropagation();
+      
+      // Si le jeu n'a pas démarré, le démarrer
+      if (!running && !gameOver) {
+        running = true;
+        const startCenter = document.getElementById('startCenter');
+        if (startCenter) startCenter.style.display = 'none';
+        requestAnimationFrame(loop);
       }
+      
+      // Effectuer le saut
+      if (running && !gameOver) {
+        if (player.onGround) {
+          player.vy = -JUMP_VELOCITY * jumpHeightScale;
+          if (nextJumpSuper) {
+            player.vy *= 1.8;
+            nextJumpSuper = false;
+            const superStatus = document.getElementById('superStatus');
+            if (superStatus) superStatus.textContent = '—';
+          }
+          player.vx += (input.right ? 1 : (input.left ? -1 : 0)) * JUMP_RANGE_IMPULSE * jumpRangeScale;
+          player.onGround = false;
+        }
+      }
+    });
+    
+    // Alternative : utiliser aussi touchend pour plus de réactivité
+    touchJump.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
     });
   }
   
