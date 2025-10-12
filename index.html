@@ -191,7 +191,7 @@
       position: absolute; inset: 0; background: rgba(0,0,0,0.45);
       color: #fff; display: none; align-items: center;
       justify-content: center; text-align: center;
-      z-index: 20;
+      z-index: 60;
     }
     .overlay.show { display: flex; }
     .overlay .panel {
@@ -262,6 +262,8 @@
     @media (max-width: 768px) {
       #touch-controls { display: flex; }
     }
+    /* Make mobile settings dialog overlay everything */
+    #mobile-settings { z-index: 60 !important; }
     #controls label {
       display: inline-flex; align-items: center; gap: 6px;
       font-weight: 600; white-space: nowrap; font-size: 14px;
@@ -553,17 +555,25 @@
   
   function generateHillPoints(offset, canvasWidth, isMobile) {
     const points = [];
-    const segments = 20;
+    const ampFactor = isMobile ? 0.6 : 1.0;
+    const baseHeight = isMobile ? 70 : 90;
+    const leftMargin = 200;
+    const rightMargin = 200;
+    const startX = -leftMargin;
+    const endX = canvasWidth + rightMargin;
+    const span = endX - startX;
+    const segments = Math.max(40, Math.ceil(span / 25));
+    const scroll = offset % 200; // small wrap to avoid gaps while using margins
     for (let i = 0; i <= segments; i++) {
-      const x = (i / segments) * (canvasWidth + 200) - 100 + offset;
-      // Combinaison de plusieurs sinusoïdes pour un effet irrégulier
-      const ampFactor = isMobile ? 0.65 : 1.0;
-      const y1 = Math.sin((x + offset) * 0.003) * 40 * ampFactor;
-      const y2 = Math.sin((x + offset) * 0.007) * 30 * ampFactor;
-      const y3 = Math.sin((x + offset) * 0.015) * 20 * ampFactor;
-      const baseHeight = isMobile ? 70 : 90; // Mobile: paysage plus "lointain"
+      const t = i / segments;
+      const baseX = startX + t * span;
+      const x = baseX - scroll;
+      const phase = baseX + offset; // continuous phase for shape variation
+      const y1 = Math.sin(phase * 0.003) * 40 * ampFactor;
+      const y2 = Math.sin(phase * 0.007) * 30 * ampFactor;
+      const y3 = Math.sin(phase * 0.015) * 20 * ampFactor;
       const y = baseHeight + y1 + y2 + y3;
-      points.push({ x: x - offset, y });
+      points.push({ x, y });
     }
     return points;
   }
@@ -582,8 +592,8 @@
     
     // Dessiner le paysage de collines
     hillsCtx.beginPath();
-    hillsCtx.moveTo(-10, 200);
-    hillsCtx.lineTo(-10, points[0].y);
+    hillsCtx.moveTo(-220, 200);
+    hillsCtx.lineTo(-220, points[0].y);
     
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
@@ -599,7 +609,7 @@
       }
     }
     
-    hillsCtx.lineTo(cw + 10, 200);
+    hillsCtx.lineTo(cw + 220, 200);
     hillsCtx.closePath();
     
     // Remplissage avec dégradé vert (herbe) - couleurs adaptées au cycle jour/nuit
@@ -787,7 +797,9 @@
     
     if (input.jump && player.onGround) {
       const heightBoost = nextJumpSuper ? 1.8 : 1.0;
-      player.vy = JUMP_VELOCITY * jumpHeightScale * heightBoost;
+      // On mobile, slightly reduce jump height/speed for better control
+      const mobileJumpFactor = (window.innerWidth <= 768) ? 0.85 : 1.0;
+      player.vy = JUMP_VELOCITY * jumpHeightScale * heightBoost * mobileJumpFactor;
       
       let dir = 0;
       if (input.right && !input.left) dir = 1;
@@ -1201,12 +1213,51 @@
   if (mobileSettingsBtn) {
     mobileSettingsBtn.addEventListener('click', () => {
       if (mobileSettings) mobileSettings.style.display = 'block';
+      // Hide on-screen controls while settings are open
+      const tc = document.getElementById('touch-controls');
+      const ma = document.getElementById('mobile-actions');
+      if (tc) tc.style.display = 'none';
+      if (ma) ma.style.display = 'none';
     });
   }
   
   if (closeSettings) {
     closeSettings.addEventListener('click', () => {
       if (mobileSettings) mobileSettings.style.display = 'none';
+      // Restore on-screen controls on mobile
+      if (window.innerWidth <= 768) {
+        const tc = document.getElementById('touch-controls');
+        const ma = document.getElementById('mobile-actions');
+        if (tc) tc.style.display = 'flex';
+        if (ma) ma.style.display = 'flex';
+      }
+    });
+  }
+
+  // Mobile pause and restart buttons
+  const mobilePauseBtn = document.getElementById('mobile-pause');
+  const mobileRestartBtn = document.getElementById('mobile-restart');
+  if (mobilePauseBtn) {
+    mobilePauseBtn.addEventListener('click', () => {
+      if (gameOver) return;
+      running = !running;
+      mobilePauseBtn.textContent = running ? '⏸️' : '▶️';
+      if (running) {
+        requestAnimationFrame(loop);
+      } else {
+        if (backgroundMusic) backgroundMusic.pause();
+      }
+    });
+  }
+  if (mobileRestartBtn) {
+    mobileRestartBtn.addEventListener('click', () => {
+      restart();
+      running = true;
+      const overlayEl = document.getElementById('overlay');
+      if (overlayEl) overlayEl.classList.remove('show');
+      const startCenter = document.getElementById('startCenter');
+      if (startCenter) startCenter.style.display = 'none';
+      requestAnimationFrame(loop);
     });
   }
   
