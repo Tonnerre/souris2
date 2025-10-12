@@ -49,9 +49,9 @@
       .barrier-rail { bottom: calc(var(--ground-height) + 60px); }
       #hills-canvas { height: 140px; }
       /* Leave room under the game for arrows */
-      body { padding-bottom: 78px; }
+      body { padding-bottom: 64px; }
       #touch-controls { bottom: 10px; }
-      #touch-controls button { width: 56px; height: 56px; font-size: 22px; }
+      #touch-controls button { width: 40px; height: 40px; font-size: 18px; }
       #mobile-actions { display: flex; position: fixed; top: 8px; right: 8px; z-index: 70; }
     }
     html, body {
@@ -364,7 +364,8 @@
     // Compute target sizes
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const gameH = Math.round(vh * (portrait ? 0.55 : 0.60));
+    // Taller game area in both orientations to reveal feet and road bottom
+    const gameH = Math.round(vh * (portrait ? 0.72 : 0.78));
     const groundH = Math.round(vh * (portrait ? 0.06 : 0.10));
     // Apply sizes directly to #game to avoid stale media-query caches
     game.style.width = vw + 'px';
