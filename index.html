@@ -1212,6 +1212,7 @@
     gameOver = false;
     running = true;
     overlay.classList.remove('show');
+    overlay.style.display = 'none';
     
     if (backgroundMusic) {
       backgroundMusic.currentTime = 0;
@@ -1222,13 +1223,13 @@
     scheduleNextBarrier();
     
     // Réinitialiser les barrières
-  for (let i = 0; i < Math.ceil(getGameWidth() / 27) + 5; i++) {
-    const el = document.createElement('div');
-    el.className = 'barrier';
-    el.style.left = (i * 27) + 'px';
-    game.appendChild(el);
-    barriers.push({ el, x: i * 27, vx: -180, width: 10 });
-  }
+    for (let i = 0; i < Math.ceil(getGameWidth() / getFenceSpacing()) + 5; i++) {
+      const el = document.createElement('div');
+      el.className = 'barrier';
+      el.style.left = (i * getFenceSpacing()) + 'px';
+      game.appendChild(el);
+      barriers.push({ el, x: i * getFenceSpacing(), vx: -180, width: 10 });
+    }
     
     lastTime = performance.now();
     requestAnimationFrame(loop);
@@ -1244,6 +1245,7 @@
     const startCenter = document.getElementById('startCenter');
     if (startCenter) startCenter.style.display = 'none';
     overlay.classList.remove('show');
+    overlay.style.display = 'none';
     gameOver = false;
     running = true;
     
