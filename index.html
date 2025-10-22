@@ -465,6 +465,8 @@
   const overlay = document.getElementById('overlay');
   const backgroundMusic = document.getElementById('backgroundMusic');
   const scoreEl = document.getElementById('score');
+  // Ensure overlay is hidden on initial load (both PC and mobile)
+  if (overlay) { overlay.classList.remove('show'); overlay.style.display = 'none'; }
   
   const WIDTH = parseInt(getComputedStyle(game).width) || 600;
   const HEIGHT = parseInt(getComputedStyle(game).height) || 240;
@@ -1151,6 +1153,8 @@
   function endGame() {
     gameOver = true;
     running = false;
+    // Make overlay visible (remove any inline display:none set at startup)
+    overlay.style.display = '';
     overlay.classList.add('show');
     if (backgroundMusic) backgroundMusic.pause();
     // Hide touch controls and mobile actions to avoid overlap while Game Over is shown
