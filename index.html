@@ -275,6 +275,11 @@
       font-size: 18px;
       font-weight: bold;
     }
+    /* PC-only restart tip */
+    #pc-restart-tip { display: none; font-size: 12px; font-weight: 600; opacity: 0.9; margin-bottom: 8px; }
+    @media (hover: hover) and (pointer: fine) {
+      #pc-restart-tip { display: block; }
+    }
     #controls {
       position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%);
       width: var(--game-width); max-width: 1200px; margin: 0 auto;
@@ -424,8 +429,8 @@
       <div id="mobile-controls-container" style="color: white; padding: 20px;">
       </div>
     </div>
-    <div id="overlay" class="overlay">
-      <div class="panel">
+    
+        <div id="pc-restart-tip">Appuyez sur Rejouer ou sur R pour recommencer</div>
         <h2>Game Over</h2>
         <button id="overlayRestartBtn" type="button" style="margin-top: 10px; padding: 8px 14px; font-size: 16px; border: 2px solid #fff; border-radius: 8px; background: rgba(0,0,0,0.35); color: #fff; cursor: pointer;">Rejouer</button>
       </div>
@@ -884,6 +889,10 @@
   function scheduleNextBarrier() {
     nextBarrierTime = 0.15; // Intervalle fixe pour barrières régulières
   }
+  // Espacement des poteaux de barrière (second plan): plus espacé sur PC
+  function getFenceSpacing() {
+    return isMobileEnv() ? 27 : 34; // 27px mobile, 34px desktop
+  }
   
   function spawnBarrier() {
     const el = document.createElement('div');
@@ -951,12 +960,12 @@
   scheduleNextBarrier();
   
   // Initialiser les barrières au démarrage (quelques poteaux en plus pour couvrir le bord droit)
-  for (let i = 0; i < Math.ceil(getGameWidth() / 27) + 5; i++) {
+  for (let i = 0; i < Math.ceil(getGameWidth() / getFenceSpacing()) + 5; i++) {
     const el = document.createElement('div');
     el.className = 'barrier';
-    el.style.left = (i * 27) + 'px';
+    el.style.left = (i * getFenceSpacing()) + 'px';
     game.appendChild(el);
-    barriers.push({ el, x: i * 27, vx: -180, width: 10 });
+    barriers.push({ el, x: i * getFenceSpacing(), vx: -180, width: 10 });
   }
   
   // Dessiner les collines au démarrage
@@ -971,12 +980,12 @@
     // Rebuild barriers to fill full width after orientation change
     for (const b of barriers) b.el.remove();
     barriers.length = 0;
-    for (let i = 0; i < Math.ceil(getGameWidth() / 27) + 5; i++) {
+    for (let i = 0; i < Math.ceil(getGameWidth() / getFenceSpacing()) + 5; i++) {
       const el = document.createElement('div');
       el.className = 'barrier';
-      el.style.left = (i * 27) + 'px';
+      el.style.left = (i * getFenceSpacing()) + 'px';
       game.appendChild(el);
-      barriers.push({ el, x: i * 27, vx: -180, width: 10 });
+      barriers.push({ el, x: i * getFenceSpacing(), vx: -180, width: 10 });
     }
     // Clamp player to new bounds
     player.x = Math.max(0, Math.min(getGameWidth() - player.width, player.x));
