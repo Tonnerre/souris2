@@ -200,9 +200,11 @@
     /* Individual fence posts */
     .barrier {
       position: absolute;
-      bottom: calc(var(--ground-height) + 44px);
+      /* Descendre jusqu'à la bordure supérieure de la route */
+      bottom: var(--ground-height);
       width: 6px;
-      height: 36px;
+      /* Atteindre le bas de la lisse (80px au-dessus du sol) */
+      height: 80px;
       background: linear-gradient(to bottom, #7a5a3a 0%, #5a422a 100%);
       border-radius: 3px;
       z-index: 2;
@@ -350,6 +352,8 @@
       /* landscape slightly taller */
       @media (orientation: landscape) {
         #touch-bar { height: 80px; }
+        /* Sufficient space under game so bar is fully visible */
+        body { padding-bottom: 96px; }
       }
       /* Left group: arrows */
       #touch-controls { pointer-events: auto; display: flex; gap: 14px; }
@@ -1015,16 +1019,21 @@
   
   function update(dt) {
     if (!running) return;
-    
+    // Ralentir le jeu sur mobile d'un tiers (vitesse * 2/3)
+    const dtLocal = isMobileEnv() ? dt * (2/3) : dt;
+    // Facteur de portée horizontale du saut sur mobile
+    const isPortrait = window.innerHeight >= window.innerWidth;
+    const mobileRangeFactor = isMobileEnv() ? (isPortrait ? (2/3) : (3/4)) : 1;
+
     // Mettre à jour et dessiner les collines
-    hillsOffset += hillsSpeed * dt;
+    hillsOffset += hillsSpeed * dtLocal;
     drawHills();
     
-    if (input.left) player.vx -= MOVE_ACCEL * dt;
-    else if (input.right) player.vx += MOVE_ACCEL * dt;
+    if (input.left) player.vx -= MOVE_ACCEL * dtLocal;
+    else if (input.right) player.vx += MOVE_ACCEL * dtLocal;
     else if (player.onGround) {
-      if (player.vx > 0) player.vx = Math.max(0, player.vx - FRICTION * dt);
-      else if (player.vx < 0) player.vx = Math.min(0, player.vx + FRICTION * dt);
+      if (player.vx > 0) player.vx = Math.max(0, player.vx - FRICTION * dtLocal);
+      else if (player.vx < 0) player.vx = Math.min(0, player.vx + FRICTION * dtLocal);
     }
     player.vx = Math.max(-MAX_SPEED_X, Math.min(MAX_SPEED_X, player.vx));
     
@@ -1040,19 +1049,20 @@
       else if (player.vx !== 0) dir = Math.sign(player.vx);
       if (dir !== 0) {
         const rangeBoost = nextJumpSuper ? 1.5 : 1.0;
-        player.vx += dir * JUMP_RANGE_IMPULSE * jumpRangeScale * rangeBoost;
+        // Réduire la portée du saut par défaut sur mobile
+        player.vx += dir * JUMP_RANGE_IMPULSE * jumpRangeScale * rangeBoost * mobileRangeFactor;
       }
       
       nextJumpSuper = false; // Consommer le super saut
       player.onGround = false;
     }
     
-    if (!player.onGround) player.vy -= GRAVITY * dt;
+    if (!player.onGround) player.vy -= GRAVITY * dtLocal;
     
-    player.x += player.vx * dt;
+    player.x += player.vx * dtLocal;
     player.x = Math.max(0, Math.min(getGameWidth() - player.width, player.x));
     
-    player.y += player.vy * dt;
+    player.y += player.vy * dtLocal;
     const roadCenterOffset = GROUND_HEIGHT / 2 - mouseSize / 2;
     if (player.y <= roadCenterOffset) {
       player.y = roadCenterOffset;
@@ -1063,7 +1073,7 @@
     souris.style.left = Math.round(player.x) + 'px';
     souris.style.bottom = (GROUND_HEIGHT + Math.round(player.y)) + 'px';
     
-    scoreAccum += dt * SCORE_RATE;
+    scoreAccum += dtLocal * SCORE_RATE;
     const inc = Math.floor(scoreAccum);
     if (inc > 0) {
       score += inc;
@@ -1104,7 +1114,7 @@
     
     for (let i = cats.length - 1; i >= 0; i--) {
       const c = cats[i];
-      c.x += c.vx * dt;
+      c.x += c.vx * dtLocal;
       if (c.x < -c.width - 20) {
         c.el.remove();
         cats.splice(i, 1);
@@ -1113,7 +1123,7 @@
       c.el.style.left = Math.round(c.x) + 'px';
     }
     
-    nextCatTime -= dt;
+    nextCatTime -= dtLocal;
     if (nextCatTime <= 0) {
       spawnCat();
       scheduleNextCat();
@@ -1122,7 +1132,7 @@
     // Barrières: déplacement + suppression hors écran
     for (let i = barriers.length - 1; i >= 0; i--) {
       const b = barriers[i];
-      b.x += b.vx * dt;
+      b.x += b.vx * dtLocal;
       if (b.x < -b.width - 20) {
         b.el.remove();
         barriers.splice(i, 1);
@@ -1131,7 +1141,7 @@
       b.el.style.left = Math.round(b.x) + 'px';
     }
     
-    nextBarrierTime -= dt;
+    nextBarrierTime -= dtLocal;
     if (nextBarrierTime <= 0) {
       spawnBarrier();
       scheduleNextBarrier();
