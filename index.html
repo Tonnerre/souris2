@@ -197,6 +197,16 @@
       z-index: 2;
       opacity: 1;
     }
+    /* Individual fence posts */
+    .barrier {
+      position: absolute;
+      bottom: calc(var(--ground-height) + 44px);
+      width: 6px;
+      height: 36px;
+      background: linear-gradient(to bottom, #7a5a3a 0%, #5a422a 100%);
+      border-radius: 3px;
+      z-index: 2;
+    }
     .barrier::before {
       content: '';
       position: absolute;
@@ -428,7 +438,10 @@
       <h2 style="color: white; text-align: center; margin-top: 40px;">Réglages</h2>
       <div id="mobile-controls-container" style="color: white; padding: 20px;">
       </div>
-    </div>        <h2>Game Over</h2>
+    </div>
+    <div id="overlay" class="overlay">
+      <div class="panel">
+        <h2>Game Over</h2>
         <button id="overlayRestartBtn" type="button" style="margin-top: 10px; padding: 8px 14px; font-size: 16px; border: 2px solid #fff; border-radius: 8px; background: rgba(0,0,0,0.35); color: #fff; cursor: pointer;">Rejouer</button>
       </div>
     </div>
