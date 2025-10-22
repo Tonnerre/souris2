@@ -342,8 +342,25 @@
       }
       /* Left group: arrows */
       #touch-controls { pointer-events: auto; display: flex; gap: 14px; }
-      /* Right group: we will append #touch-super-jump and #touch-jump into #touch-right-group */
+      /* Center big red jump button */
+      #touch-big-jump {
+        display: block;
+        width: 68px; height: 68px;
+        border-radius: 50%;
+        background: #d62828; /* red */
+        border: 4px solid rgba(255,255,255,0.95);
+        color: #fff; font-weight: 800; font-size: 22px;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.35);
+        pointer-events: auto;
+        display: inline-flex; align-items: center; justify-content: center;
+        margin: 0 auto; /* center between left/right groups */
+        transition: transform 0.08s ease;
+      }
+      #touch-big-jump:active, #touch-big-jump.pressed { transform: scale(0.92); }
+      /* Right group: super jump only */
       #touch-right-group { display: flex; align-items: center; gap: 14px; pointer-events: auto; }
+      /* Hide old small jump button on mobile */
+      #touch-jump { display: none !important; }
     }
     /* Boutons Pause/Restart mobiles */
     #mobile-actions { display: none; position: fixed; top: 8px; right: 8px; z-index: 50; gap: 6px; }
@@ -1434,7 +1451,50 @@
     if (isMobile) {
       // Left group: arrows
       if (touchControlsEl && touchControlsEl.parentElement !== touchBar) touchBar.appendChild(touchControlsEl);
-      // Right group: Super + Jump on the same line
+      // Ensure big red jump button exists and is centered
+      let bigJump = document.getElementById('touch-big-jump');
+      if (!bigJump) {
+        bigJump = document.createElement('button');
+        bigJump.id = 'touch-big-jump';
+        bigJump.setAttribute('aria-label', 'Sauter');
+        bigJump.textContent = '↑';
+      }
+      if (bigJump.parentElement !== touchBar) touchBar.appendChild(bigJump);
+      // Attach handlers once
+      if (!bigJump.dataset.wired) {
+        const startGameIfNeeded = () => {
+          if (!running && !gameOver) {
+            running = true;
+            const startCenter = document.getElementById('startCenter');
+            if (startCenter) startCenter.style.display = 'none';
+            requestAnimationFrame(loop);
+          }
+        };
+        bigJump.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          bigJump.classList.add('pressed');
+          startGameIfNeeded();
+          input.jump = true;
+        }, { passive: false });
+        bigJump.addEventListener('touchend', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          bigJump.classList.remove('pressed');
+          input.jump = false;
+        }, { passive: false });
+        bigJump.addEventListener('click', (e) => {
+          e.preventDefault();
+          startGameIfNeeded();
+          bigJump.classList.add('pressed');
+          input.jump = true;
+          setTimeout(() => { input.jump = false; bigJump.classList.remove('pressed'); }, 80);
+        });
+        bigJump.addEventListener('mousedown', () => bigJump.classList.add('pressed'));
+        bigJump.addEventListener('mouseup', () => bigJump.classList.remove('pressed'));
+        bigJump.dataset.wired = '1';
+      }
+      // Right group: Super only
       let rightGroup = document.getElementById('touch-right-group');
       if (!rightGroup) {
         rightGroup = document.createElement('div');
@@ -1445,8 +1505,6 @@
       }
       const superBtn = document.getElementById('touch-super-jump');
       if (superBtn && superBtn.parentElement !== rightGroup) rightGroup.appendChild(superBtn);
-      const jumpBtn = document.getElementById('touch-jump');
-      if (jumpBtn && jumpBtn.parentElement !== rightGroup) rightGroup.appendChild(jumpBtn);
       touchBar.style.display = 'flex';
     } else {
       touchBar.style.display = 'none';
