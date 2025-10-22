@@ -275,11 +275,7 @@
       font-size: 18px;
       font-weight: bold;
     }
-    /* PC-only restart tip */
-    #pc-restart-tip { display: none; font-size: 12px; font-weight: 600; opacity: 0.9; margin-bottom: 8px; }
-    @media (hover: hover) and (pointer: fine) {
-      #pc-restart-tip { display: block; }
-    }
+    /* PC-only restart tip */@media (hover: hover) and (pointer: fine) {}
     #controls {
       position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%);
       width: var(--game-width); max-width: 1200px; margin: 0 auto;
@@ -396,6 +392,10 @@
     #controls button {
       padding: 4px 8px; white-space: nowrap;
     }
+@media (hover: hover) and (pointer: fine) {
+      #overlayRestartBtn { background:#5a5a5a !important; border-color:#e5e7eb !important; font-size:18px !important; padding:10px 18px !important; }
+    }
+
   </style>
 </head>
 <body>
@@ -428,10 +428,7 @@
       <h2 style="color: white; text-align: center; margin-top: 40px;">Réglages</h2>
       <div id="mobile-controls-container" style="color: white; padding: 20px;">
       </div>
-    </div>
-    
-        <div id="pc-restart-tip">Appuyez sur Rejouer ou sur R pour recommencer</div>
-        <h2>Game Over</h2>
+    </div>        <h2>Game Over</h2>
         <button id="overlayRestartBtn" type="button" style="margin-top: 10px; padding: 8px 14px; font-size: 16px; border: 2px solid #fff; border-radius: 8px; background: rgba(0,0,0,0.35); color: #fff; cursor: pointer;">Rejouer</button>
       </div>
     </div>
