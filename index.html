@@ -202,7 +202,7 @@
       position: absolute;
       /* Descendre jusqu'à la bordure supérieure de la route */
       bottom: var(--ground-height);
-      width: 6px;
+      width: 4px;
       /* Atteindre le bas de la lisse (80px au-dessus du sol) */
       height: 80px;
       background: linear-gradient(to bottom, #7a5a3a 0%, #5a422a 100%);
@@ -907,7 +907,7 @@
   }
   // Espacement des poteaux de barrière (second plan): plus espacé sur PC
   function getFenceSpacing() {
-    return isMobileEnv() ? 27 : 34; // 27px mobile, 34px desktop
+    return isMobileEnv() ? 32 : 42; // 32px mobile, 42px desktop (aéré)
   }
   
   function spawnBarrier() {
